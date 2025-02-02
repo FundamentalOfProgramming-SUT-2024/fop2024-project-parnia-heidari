@@ -1,16 +1,23 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <ncurses.h>
+#include <wchar.h>  
+#include <locale.h> 
+#include <ncurses.h> 
+#include <math.h>
 #include <stdbool.h>
 #include <ctype.h>
-#include <time.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
+#include <pthread.h>
 
-///possible improvements: make a box for the menus. make an exit section for every page.
+#include "gameplay.c"
 
 int max_y, max_x;
+
+char musiclist[6][100]={"Fading Footsteps in the Forest.mp3","Passages .mp3","Tales Beneath the Willow .mp3","The old Oak .mp3","The Vagabond .mp3","None"};
+int current_music=0;
+
 
 ///////////////////////////////////////////////////////
 
@@ -44,7 +51,7 @@ void welcome_printer(){
     attron(A_BOLD);
     mvprintw(max_y/4, max_x/2-10,"  WELCOME TO ROGUE!");
     attroff(A_BOLD);
-    mvprintw(max_y/4+1, max_x/2-10," Adventure awaits...");
+    mvprintw(max_y/4+1, max_x/2-10," Adventure awaits..,");
     mvprintw(max_y/2+3, max_x/2-10,"   press Q to quit");
 }
 
@@ -61,15 +68,13 @@ int check_username(char user[]){
         char pass[100];
         char email[100];
         char breaker[100];
-        char a[100]; char b[100]; 
-        char c[100]; char d[100]; 
+        char a[100]; char b[100]; char c[100];
         fgets(pass,100,ptr);
         fgets(email,100,ptr);
         fgets(breaker,100,ptr);
         fgets(a,100,ptr);
         fgets(b,100,ptr);
         fgets(c,100,ptr);
-        fgets(d,100,ptr);
     }
     fclose(ptr);
     return 1;
@@ -154,7 +159,7 @@ char *random_pass_generator(){
 //////////////////////////////////////////////////////////
 
 int make_password(char pass[100]){
-    mvprintw(max_y/9*8-2, max_x/2-35,"Press \\ to receive a secret word, forged by fate.");
+    mvprintw(max_y/9*8-2, max_x/2-35,"Press \\ to receive a secret word, forged by fate,");
     curs_set(1);
     move(max_y/2-2, max_x/2-10);
     clrtoeol();
@@ -197,7 +202,7 @@ int make_password(char pass[100]){
             attron(A_BOLD | A_UNDERLINE);
             move(max_y/5*4, max_x/2-45);
             clrtoeol();
-            mvprintw(max_y/5*4, max_x/2-33,"Thy cipher must be of seven characters or more.");
+            mvprintw(max_y/5*4, max_x/2-33,"Thy cipher must be of seven characters or more,");
             attroff(A_BOLD | A_UNDERLINE);
             make_password(pass);
             break;
@@ -205,7 +210,7 @@ int make_password(char pass[100]){
             attron(A_BOLD | A_UNDERLINE);
             move(max_y/5*4, max_x/2-45);
             clrtoeol();
-            mvprintw(max_y/5*4, max_x/2-40,"Thy cipher must bear at least one character of the lower script.");
+            mvprintw(max_y/5*4, max_x/2-40,"Thy cipher must bear at least one character of the lower script,");
             attroff(A_BOLD | A_UNDERLINE);
             make_password(pass);
             break;
@@ -213,7 +218,7 @@ int make_password(char pass[100]){
             attron(A_BOLD | A_UNDERLINE);
             move(max_y/5*4, max_x/2-45);
             clrtoeol();
-            printw("Thou must ensure thy password hath at least one letter of the grand form.");
+            printw("Thou must ensure thy password hath at least one letter of the grand form,");
             attroff(A_BOLD | A_UNDERLINE);
             make_password(pass);
             break;
@@ -221,7 +226,7 @@ int make_password(char pass[100]){
             attron(A_BOLD | A_UNDERLINE);
             move(max_y/5*4, max_x/2-45);
             clrtoeol();
-            mvprintw(max_y/5*4, max_x/2-35,"Thy secret word must needs bear at least one numeral.");
+            mvprintw(max_y/5*4, max_x/2-35,"Thy secret word must needs bear at least one numeral,");
             attroff(A_BOLD | A_UNDERLINE);
             make_password(pass);
             break;
@@ -291,7 +296,7 @@ int make_email(char email[100]){
     curs_set(0);
     if(check_email(email)==0){
         attron(A_BOLD | A_UNDERLINE);
-        mvprintw(max_y/5*4, max_x/2-35,"Thy missive must needs be crafted in the proper manner.");
+        mvprintw(max_y/5*4, max_x/2-35,"Thy missive must needs be crafted in the proper manner,");
         attroff(A_BOLD | A_UNDERLINE);
         make_email(email);
     }
@@ -306,11 +311,11 @@ int make_email(char email[100]){
 
 int create_account(){
     clear();
-    mvprintw(max_y/4, max_x/2-50,"Dear Questor, please enter the name you wish to be recognized by in this realm.");
+    mvprintw(max_y/4, max_x/2-50,"Dear Questor, please enter the name you wish to be recognized by in this realm,");
     mvprintw(max_y/3, max_x/2-30,"Questor's Title : ");
     mvprintw(max_y/2-2, max_x/2-30,"Cipher of Trust : ");
     mvprintw(max_y/2+3, max_x/2-33,"Electronic Missive : ");
-    mvprintw(max_y/9*8, max_x/2-23,"Press delete to go back.");
+    mvprintw(max_y/9*8, max_x/2-23,"Press delete to go back,");
     refresh();
     
     char new_user[100];
@@ -332,13 +337,11 @@ int create_account(){
     fputs("\n",fptr);
     fputs(email,fptr);
     fputs("\n",fptr);
-    fputs("0",fptr);
+    fputs("0",fptr); //gold
     fputs("\n",fptr);
-    fputs("0",fptr);
+    fputs("0",fptr); //score
     fputs("\n",fptr);
-    fputs("0",fptr);
-    fputs("\n",fptr);
-    fputs("0",fptr);
+    fputs("0",fptr); //experience
     fputs("\n",fptr);
     fputs("$$$$$$$$$$$$$$$$$$$$",fptr);
     fputs("\n",fptr);
@@ -355,8 +358,12 @@ char *check_user_login(char user[]){
         char pass[100];
         char email[100];
         char breaker[100];
+        int gold; int score; int exp;
         fgets(pass,100,ptr);
         fgets(email,100,ptr);
+        fscanf(ptr,"%d",&gold);
+        fscanf(ptr,"%d",&score);
+        fscanf(ptr,"%d",&exp);
         fgets(breaker,100,ptr);
         info[strcspn(info, "\n")]='\0';
         if(strcmp(user,info)==0){
@@ -402,7 +409,7 @@ char *login_username(char user[]){
     char *pass=check_user_login(user);
     if(pass==NULL){
         attron(A_BOLD | A_UNDERLINE);
-        mvprintw(max_y/5*3, max_x/2-30,"No such name exists in this realm.");
+        mvprintw(max_y/5*3, max_x/2-30,"No such name exists in this realm,");
         attroff(A_BOLD | A_UNDERLINE);
         move(max_y/3, max_x/2-10);
         clrtoeol();
@@ -417,7 +424,7 @@ char *login_username(char user[]){
 ///////////////////////////////////////////////////////////////////////////
 
 char *login_password(char *real_pass,char user[]){
-    mvprintw(max_y/8*7,max_x/2-35,"Forgotten your secret cipher? Press \\ to unseal it.");
+    mvprintw(max_y/8*7,max_x/2-35,"Forgotten your secret cipher? Press \\ to unseal it,");
     curs_set(1);
     move(max_y/2-2, max_x/2-10);
     clrtoeol();
@@ -444,10 +451,10 @@ char *login_password(char *real_pass,char user[]){
         else if(ch=='\\'){
             clear();
             curs_set(0);
-            mvprintw(max_y/2-2, max_x/2-40,"I swear upon mine honor, 'tis I, %s, attempting to enter the gates.",user);
-            mvprintw(max_y/2-1, max_x/2-37, "Should I speak falsely, may the flames of perdition consume me.");
-            mvprintw(max_y/2+3,max_x/2-20,"Press Enter to continue.");
-            mvprintw(max_y/2+5,max_x/2-17,"Press Q to quit.");
+            mvprintw(max_y/2-2, max_x/2-40,"I swear upon mine honor, 'tis I, %s, attempting to enter the gates,",user);
+            mvprintw(max_y/2-1, max_x/2-37, "Should I speak falsely, may the flames of perdition consume me,");
+            mvprintw(max_y/2+3,max_x/2-20,"Press Enter to continue,");
+            mvprintw(max_y/2+5,max_x/2-17,"Press Q to quit,");
             refresh();
             while(1){
                 int ch=getch();
@@ -478,7 +485,7 @@ char *login_password(char *real_pass,char user[]){
         return user_copy;}
     else{
         attron(A_BOLD | A_UNDERLINE);
-        mvprintw(max_y/5*3, max_x/2-35,"Thy password is not as it should be, noble one.");
+        mvprintw(max_y/5*3, max_x/2-35,"Thy password is not as it should be, noble one,");
         attroff(A_BOLD | A_UNDERLINE);
         move(max_y/2-2, max_x/2-10);
         clrtoeol();
@@ -490,11 +497,11 @@ char *login_password(char *real_pass,char user[]){
 
 char *login(){
     clear();
-    mvprintw(max_y/4, max_x/2-50,"Greetings, fair soul! Please declare your Title and Cipher of Trust to proceed.");
+    mvprintw(max_y/4, max_x/2-50,"Greetings, fair soul! Please declare your Title and Cipher of Trust to proceed,");
     mvprintw(max_y/3, max_x/2-30,"Questor's Title : ");
     mvprintw(max_y/2-2, max_x/2-30,"Cipher of Trust : ");
-    mvprintw(max_y/9*8,max_x/2-25,"Press delete to go back.");
-    mvprintw(max_y/9*8-2,max_x/2-40,"Press '=' to enter as a humble guest, with no name to bear.");
+    mvprintw(max_y/9*8,max_x/2-25,"Press delete to go back,");
+    mvprintw(max_y/9*8-2,max_x/2-40,"Press '=' to enter as a humble guest, with no name to bear,");
     refresh();
     char user[100];
     char *real_pass=login_username(user);
@@ -503,15 +510,133 @@ char *login(){
 }
 
 //////////////////////////////////////////////////////////////////////////////
+
+typedef struct {
+    char username[100];
+    int gold;
+    int score;
+    int exp;
+} Player;
+
+void scoreboard(char *userr){
+    cbreak(); 
+    init_color(COLOR_YELLOW, 800, 800, 0);
+    init_color(COLOR_GREEN,300,700,0);
+    init_pair(30,COLOR_YELLOW,COLOR_BLACK);
+    init_pair(31,COLOR_CYAN,COLOR_BLACK);
+    init_pair(32,COLOR_GREEN,COLOR_BLACK);
+    int screen_height, screen_width;
+    getmaxyx(stdscr, screen_height, screen_width);
+    int win_height = 30;
+    int win_width = 100;
+    int start_y = (screen_height - win_height) / 2;
+    int start_x = (screen_width - win_width) / 2;
+    WINDOW *win = newwin(win_height, win_width, start_y, start_x);
+    scrollok(win, TRUE);
+    wattron(win,A_BOLD);
+    mvwprintw(win,2,45,"Scoreboard");
+    wattroff(win,A_BOLD);
+    
+    FILE *ptr = fopen("users.txt", "r");
+    if (!ptr) {
+        mvwprintw(win, 3, 5, "Error: Cannot open users.txt");
+        wrefresh(win);
+        getch();
+        delwin(win);
+        return;
+    }
+
+    Player players[100];
+    int total_players = 0;
+
+    while (fgets(players[total_players].username, 100, ptr)) {
+        players[total_players].username[strcspn(players[total_players].username, "\n")] = '\0';  // Remove newline
+
+        char pass[100], email[100], breaker[100];
+        fgets(pass, 100, ptr);
+        fgets(email, 100, ptr);
+        fscanf(ptr, "%d", &players[total_players].gold); fgetc(ptr);
+        fscanf(ptr, "%d", &players[total_players].score); fgetc(ptr);
+        fscanf(ptr, "%d", &players[total_players].exp); fgetc(ptr);
+        fgets(breaker, 100, ptr); 
+
+        total_players++;
+    }
+    fclose(ptr);
+
+    for (int i = 0; i < total_players - 1; i++) {
+        for (int j = i + 1; j < total_players; j++) {
+            if (players[j].score > players[i].score) {
+                Player temp = players[i];
+                players[i] = players[j];
+                players[j] = temp;
+            }
+        }
+    }
+
+    for (int i = 0; i < total_players; i++) {
+        if (i == 0) {
+            wattron(win, COLOR_PAIR(30) | A_STANDOUT);
+            mvwprintw(win, 3 + i, 5, "🥇 The Grandmaster");
+        } else if (i == 1) {
+            wattron(win, COLOR_PAIR(31) | A_STANDOUT);
+            mvwprintw(win, 3 + i, 5, "🥈 The Ascendant");
+        } else if (i == 2) {
+            wattron(win, COLOR_PAIR(32) | A_STANDOUT);
+            mvwprintw(win, 3 + i, 5, "🥉 The Challenger");
+        } else {
+            mvwprintw(win, 3 + i, 5, "%d.", i + 1);
+        }
+
+        if (strcmp(players[i].username, userr) == 0) {
+            wattron(win, A_BLINK);
+        }
+
+        mvwprintw(win, 3 + i, 23, "%s | Gold: %d | Score: %d | Exp: %d",
+                  players[i].username, players[i].gold, players[i].score, players[i].exp);
+
+        wattroff(win, A_BLINK);
+        wattroff(win, COLOR_PAIR(30) | A_STANDOUT);
+        wattroff(win, COLOR_PAIR(31) |A_STANDOUT);
+        wattroff(win, COLOR_PAIR(32) | A_STANDOUT);
+    }
+    wrefresh(win);
+    int ch;
+    while (1) {
+        ch = getch();
+        if (ch == KEY_UP) {
+            wscrl(win, 1);
+        } else if (ch == KEY_DOWN) {
+            wscrl(win, -1);
+        }
+        else{break;}
+        wrefresh(win);
+    }
+    werase(win);
+    wrefresh(win);
+    delwin(win);  
+    touchwin(stdscr);     
+    refresh(); 
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+
 void first_page();
 void setting(char *user);
+void menu(char *user);
 
 
 void setting(char *user){
+    noecho();
+    curs_set(0);
     char *d="Difficulty";
     char *e="Music";
     char *f="Character Design";
-    mvprintw(max_y/5+22, max_x/2-8,"Press e to go back.");
+    attron(A_BOLD);
+    mvprintw(max_y/5+3, max_x/2-3,"Setting");
+    attroff(A_BOLD);
+    mvprintw(max_y/5+22, max_x/2-9,"Press e to go back,");
     button_maker(max_y/5+7,max_x/2-10,1,d);
     button_maker(max_y/5+12,max_x/2-10,0,e);
     button_maker(max_y/5+17,max_x/2-10,0,f);
@@ -550,7 +675,110 @@ void setting(char *user){
                 menu(user);
                 break;
             case '\n':
-                if(cur_but==1); //COMPLETE THIS<ALSO ADD A HOW TO PLAY
+                if(cur_but==1){
+                    int screen_height, screen_width;
+                    getmaxyx(stdscr, screen_height, screen_width);
+                    int win_height = 20;
+                    int win_width = 60;
+                    int start_y = (screen_height - win_height) / 2;
+                    int start_x = (screen_width - win_width) / 2;
+                    WINDOW *win = newwin(win_height, win_width, start_y, start_x);
+                    box(win,ACS_PLUS, ACS_DIAMOND);
+                    wattron(win,A_BOLD);
+                    mvwprintw(win,2,14,"Choose your preferred difficulty,");
+                    wattroff(win,A_BOLD);
+                    wattron(win,A_ITALIC);
+                    mvwprintw(win,4,14,"Note: The higher the difficulty,");
+                    mvwprintw(win,5,13,"the more damage the monsters will deal,");
+                    mvwprintw(win,6,13,"but you'll earn more points in return,");
+                    wattroff(win,A_ITALIC);
+                    char options[3][10]={"Easy","Medium","Hard"};
+                    for(int i=1;i<=3;i++){
+                        if(i==difficulty){wattron(win,A_BOLD | A_BLINK);}
+                        mvwprintw(win,6+2*i,25,"%d : %s",i,options[i-1]);
+                        if(i==difficulty){wattroff(win,A_BOLD | A_BLINK);}
+                    }
+                    wrefresh(win);
+                    int temp=getch();
+                    int tempp=temp-'0';
+                    if(tempp==1){difficulty=1;}
+                    else if(tempp==2){difficulty=2;}
+                    else if(tempp==3){difficulty=3;}
+                    werase(win);
+                    wrefresh(win);
+                    delwin(win);  
+                    touchwin(stdscr);     
+                    refresh(); 
+                }
+                else if(cur_but==2){
+                    int screen_height, screen_width;
+                    getmaxyx(stdscr, screen_height, screen_width);
+                    int win_height = 20;
+                    int win_width = 60;
+                    int start_y = (screen_height - win_height) / 2;
+                    int start_x = (screen_width - win_width) / 2;
+                    WINDOW *win = newwin(win_height, win_width, start_y, start_x);
+                    box(win,ACS_PLUS, ACS_DIAMOND);
+                    wattron(win,A_BOLD);
+                    mvwprintw(win,2,10,"Choose your preferred music,");
+                    wattroff(win,A_BOLD);
+                    wattron(win,A_ITALIC);
+                    wattroff(win,A_ITALIC);
+                    for(int i=0;i<6;i++){
+                        if(i==current_music){wattron(win,A_BOLD | A_BLINK);}
+                        mvwprintw(win,5+2*i,10,"%d : %s",i+1,musiclist[i]);
+                        if(i==current_music){wattroff(win,A_BOLD | A_BLINK);}
+                    }
+                    wrefresh(win);
+                    int temp=getch();
+                    int tempp=temp-'0';
+                    if(tempp>=1 && tempp<=5){
+                        music_on=1;
+                        current_music=tempp-1;
+                        strcpy(song,musiclist[current_music]);
+                        pthread_t music_thread;
+                        pthread_create(&music_thread, NULL, play_music, NULL);
+                    }
+                    else if(tempp==6){
+                        current_music=tempp-1;
+                        music_on=0;}
+                    werase(win);
+                    wrefresh(win);
+                    delwin(win);  
+                    touchwin(stdscr);     
+                    refresh(); 
+                }
+                else if(cur_but==3){
+                    int screen_height, screen_width;
+                    getmaxyx(stdscr, screen_height, screen_width);
+                    int win_height = 20;
+                    int win_width = 60;
+                    int start_y = (screen_height - win_height) / 2;
+                    int start_x = (screen_width - win_width) / 2;
+                    WINDOW *win = newwin(win_height, win_width, start_y, start_x);
+                    box(win,ACS_PLUS, ACS_DIAMOND);
+                    wattron(win,A_BOLD);
+                    mvwprintw(win,2,10,"Choose your preferred character,");
+                    wattroff(win,A_BOLD);
+                    for(int i=0;i<6;i++){
+                        if(i==current_character){wattron(win,A_BLINK);}
+                        mvwprintw(win,5+2*i,10,"%d : %lc",i+1,characterlist[i]);
+                        if(i==current_character){wattroff(win,A_BLINK);}
+                    }
+                    wrefresh(win);
+                    int temp=getch();
+                    int tempp=temp-'0';
+                    if(tempp>=1 && tempp<=6){
+                        current_character=tempp-1;
+                    }
+                    werase(win);
+                    wrefresh(win);
+                    delwin(win);  
+                    touchwin(stdscr);     
+                    refresh(); 
+                }
+                break;
+            default:
                 break;
         }
     }
@@ -559,10 +787,12 @@ void setting(char *user){
 //////////////////////////////////////////////////////////////////////////////
 
 void menu(char *user){
+    noecho();
+    curs_set(0);
     clear();
     attron(A_BOLD);
     mvprintw(max_y/5-2, max_x/2-7,"Welcome, %s!",user);
-    mvprintw(max_y/5+27, max_x/2-7,"Press e to exit.");
+    mvprintw(max_y/5+27, max_x/2-7,"Press e to exit,");
     attroff(A_BOLD);
     char *c="New Game";
     char *d="Resume Game";
@@ -626,6 +856,66 @@ void menu(char *user){
                     clear();
                     setting(user);
                 }
+                else if(cur_but==3){
+                    scoreboard(user);
+                }
+                else if(cur_but==4){
+                    int screen_height, screen_width;
+                    getmaxyx(stdscr, screen_height, screen_width);
+                    int win_height = 20;
+                    int win_width = 60;
+                    int start_y = (screen_height - win_height) / 2;
+                    int start_x = (screen_width - win_width) / 2;
+                    WINDOW *win = newwin(win_height, win_width, start_y, start_x);
+                    box(win,ACS_PLUS, ACS_DIAMOND);
+                    wattron(win,A_BOLD);
+                    mvwprintw(win,2,4,"Profile :");
+                    wattroff(win,A_BOLD);
+                    FILE *ptr=fopen("users.txt","r");
+                    char info[100];
+                    while(fgets(info,100,ptr)){
+                        char pass[100];
+                        char email[100];
+                        char breaker[100];
+                        int gold; int score; int exp;
+                        fgets(pass,100,ptr);
+                        fgets(email,100,ptr);
+                        fscanf(ptr,"%d",&gold);
+                        fscanf(ptr,"%d",&score);
+                        fscanf(ptr,"%d",&exp);
+                        fgets(breaker,100,ptr);
+                        info[strcspn(info, "\n")]='\0';
+                        if(strcmp(user,info)==0){
+                            mvwprintw(win,4,4,"Username : %s",info);
+                            mvwprintw(win,6,4,"Password : %s",pass);
+                            mvwprintw(win,8,4,"Email : %s",email);
+                            mvwprintw(win,10,4,"Total gold collected : %d",gold);
+                            mvwprintw(win,12,4,"Score : %d",score);
+                            mvwprintw(win,14,4,"Total experience : %d",exp);
+                            mvwprintw(win,3,40,"      ***   ");
+                            mvwprintw(win,4,40,"    *******  ");
+                            mvwprintw(win,5,40,"   ********* "); 
+                            mvwprintw(win,6,40,"/\\* ### ### */\\");
+                            mvwprintw(win,7,40,"|    @ / @    |");
+                            mvwprintw(win,8,40,"\\/\\    ^    /\\/");
+                            mvwprintw(win,9,40,"   \\  ===  /  ");
+                            mvwprintw(win,10,40,"    \\_____/  ");
+                            mvwprintw(win,11,40,"     _|_|_  ");
+                            mvwprintw(win,12,40,"  *$$$$$$$$$*");
+                            fclose(ptr);
+                            break;
+                        }  
+                    }
+                    wrefresh(win);
+                    int c=getch();
+                    werase(win);
+                    wrefresh(win);
+                    delwin(win);  
+                    touchwin(stdscr);     
+                    refresh(); 
+                }
+                break;
+            default:
                 break;
 
         }
@@ -710,12 +1000,19 @@ void first_page(){
 }
 
 int main() {
+    strcpy(song,musiclist[current_music]);
+    pthread_t music_thread;
+    pthread_create(&music_thread, NULL, play_music, NULL);
+    setlocale(LC_ALL, "");
     initscr();
+    start_color();
     keypad(stdscr, TRUE);
     noecho();
     curs_set(0);
     getmaxyx(stdscr, max_y, max_x);
     first_page();
+    pthread_join(music_thread, NULL);
+    SDL_Quit();
     return 0;
 }
 

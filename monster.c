@@ -12,6 +12,10 @@
 #include <pthread.h>
 #include <unistd.h>
 
+
+wchar_t characterlist[6]={L'🯅',L'🯉',L'♛',L'♚',L'♜',L'♞'};
+int current_character=0;
+
 int allow_to_move=1;
 int monster_health=0;
 int first_time_we_see_it=0;
@@ -301,7 +305,7 @@ void weapon_user(char weapon[100],int direction,int x,int y,int strength){
                 refresh(); return;
             }
             else if(c=='.'){
-                if(first==0){mvprintw(y,x,"%lc",L'🯅');}
+                if(first==0){mvprintw(y,x,"%lc",characterlist[current_character]);}
                 else mvprintw(y,x,".");
                 first++;
                 mvprintw(y+y_moves[direction-1],x+x_moves[direction-1],"*");
@@ -368,7 +372,7 @@ void weapon_user(char weapon[100],int direction,int x,int y,int strength){
                 refresh(); return;
             }
             else if(c=='.'){
-                if(first==0){mvprintw(y,x,"%lc",L'🯅');}
+                if(first==0){mvprintw(y,x,"%lc",characterlist[current_character]);}
                 else mvprintw(y,x,".");
                 first++;
                 mvprintw(y+y_moves[direction-1],x+x_moves[direction-1],"%lc",L'🗡');
@@ -435,7 +439,7 @@ void weapon_user(char weapon[100],int direction,int x,int y,int strength){
                 refresh(); return;
             }
             else if(c=='.'){
-                if(first==0){mvprintw(y,x,"%lc",L'🯅');}
+                if(first==0){mvprintw(y,x,"%lc",characterlist[current_character]);}
                 else mvprintw(y,x,".");
                 first++;
                 mvprintw(y+y_moves[direction-1],x+x_moves[direction-1],"⌁");

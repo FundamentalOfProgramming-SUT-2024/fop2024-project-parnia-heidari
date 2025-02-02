@@ -8,8 +8,11 @@
 #include <ctype.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
+#include <pthread.h>
 
 int max_y, max_x;
+
+int difficulty=1;
 
 //45,185
 
@@ -802,14 +805,12 @@ void monster_generator(room ** rooms, int n, int difficulty){
 int total_room;
 
 room ** map_generator(){
-    int difficulty=3;
     memset(items,'\0',sizeof(items));
     setlocale(LC_ALL, "");
     initscr();
     srand(time(NULL));
     keypad(stdscr, TRUE);
     noecho();
-    start_color();
     getmaxyx(stdscr, max_y, max_x);
     total_room=rand()%2 +8;
     room **rooms=malloc(total_room * sizeof(room *));

@@ -15,7 +15,7 @@
 
 #include "map.c"
 #include "monster.c"
-int difficulty=1;
+
 
 struct inv{
     char enchantments[5][40]; //max 5
@@ -719,7 +719,7 @@ void character_mover(room **rooms, int total_room){
             FILE *fptr=fopen("window_state.txt","r");
             nightmare_map_explorer(fptr,current_x,current_y);
             fclose(fptr);
-            mvprintw(current_y,current_x,"%lc",L'🯅');
+            mvprintw(current_y,current_x,"%lc",characterlist[current_character]);
             refresh();
             break;
         case 'f':
@@ -822,12 +822,12 @@ void character_mover(room **rooms, int total_room){
         refresh();
         if(nightmare==-1){
             nightmare_map_explorer(fptr,current_x,current_y);
-            mvprintw(current_y,current_x,"%lc",L'🯅');}
+            mvprintw(current_y,current_x,"%lc",characterlist[current_character]);}
         fclose(fptr);
         refresh();
     }
             prev=mvinch(current_y,current_x);
-            mvprintw(current_y,current_x,"%lc",L'🯅');
+            mvprintw(current_y,current_x,"%lc",characterlist[current_character]);
             break;
         case 'e':
             int screen_height, screen_width;
@@ -1350,7 +1350,7 @@ void character_mover(room **rooms, int total_room){
     if(next_y>=0 && (mvinch(next_y,next_x)=='.' || mvinch(next_y,next_x)=='+' || mvinch(next_y,next_x)=='#')){
         mvprintw(current_y,current_x,"%c",prev);
         prev=mvinch(next_y,next_x);
-        mvprintw(next_y,next_x,"%lc",L'🯅');
+        mvprintw(next_y,next_x,"%lc",characterlist[current_character]);
         current_x=next_x;
         current_y=next_y;
         if(current_x==rooms[enchantment_room]->door_coordinates[0][1] && current_y==rooms[enchantment_room]->door_coordinates[0][2]){
@@ -1443,7 +1443,7 @@ void character_mover(room **rooms, int total_room){
         refresh();
         if(nightmare==-1){
             nightmare_map_explorer(fptr,current_x,current_y);
-            mvprintw(current_y,current_x,"%lc",L'🯅');}
+            mvprintw(current_y,current_x,"%lc",characterlist[current_character]);}
         fclose(fptr);
         refresh();
     }
@@ -1610,7 +1610,7 @@ void character_generator(room **rooms, int total_room){
     fclose(fptr);
     refresh();
     clear();
-    mvprintw(y,x,"%lc",L'🯅');
+    mvprintw(y,x,"%lc",characterlist[current_character]);
     attron(COLOR_PAIR(10));
     mvprintw(0,172,"Gold : %d",inventory.gold);
     attroff(COLOR_PAIR(10));
@@ -1627,14 +1627,12 @@ void character_generator(room **rooms, int total_room){
 
 
 
-int main(){
-    strcpy(song,"music_fixed.ogg");
-     pthread_t music_thread;
-     pthread_create(&music_thread, NULL, play_music, NULL);
-    room **rooms=map_generator();
-    character_generator(rooms,total_room);
-    pthread_join(music_thread, NULL);
-    SDL_Quit();
-    endwin();
+// int main(){
+//curs_set(0);
+    
+//     room **rooms=map_generator();
+//     character_generator(rooms,total_room);
+    
+//     endwin();
    
-}
+// }
