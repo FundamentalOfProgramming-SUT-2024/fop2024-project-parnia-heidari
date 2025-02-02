@@ -6,8 +6,8 @@
 #include <math.h>
 #include <stdbool.h>
 #include <ctype.h>
-#include <time.h>
-
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 
 int max_y, max_x;
 
@@ -27,20 +27,20 @@ typedef struct{
     int neighbour_num;
     int staircase[3]; //the first index shows if it has a staircase or not, the next 2 are its coordinates.
     int pillar_num; //max 2
-    int pillar_coordinates[2][2];
     int gold_num; //max 1
-    int gold_coordinates[3]; //first one is the type. 0:notmal 1:black
     int enchant_num; //max 1
-    int enchant_coordinates[3]; //first index shows its type, 1:health, 2:speed, 3:damage
     int food_num; //max 1
-    int food_coordinates[3]; //first one is type. 1:normal 2:aala 3:magical 4:rotten
     int weapon_num; //max 1
-    int weapon_coordinates[3]; //first one is the type. 1:mace 2:dagger 3:wand 4:arrow 5:sword
+    int monster_num; //max 1
 }room;
 
 //the sides of the room are named like this: Top:1, Right:2, Bottom:3, Left:4
 
 char items[200][60][40]; //we will store each item on the floor here.
+
+int nightmare_room=-1;
+int enchantment_room=-1;
+int gold_room=-1;
 
 int check_room_collision(int y, int x, int h, int w){ //doesnt allow any rooms within a 10 block radius of an existing room.
     for (int i=x-10; i <= x+w+11 ; i++) {
@@ -72,6 +72,7 @@ void room_generator(room *current){
         current->enchant_num=0;
         current->food_num=0;
         current->weapon_num=0;
+        current->monster_num=0;
         x=current->x; w=current->width;
         y=current->y; h=current->height;
     }while(check_room_collision(y,x,h,w));
@@ -79,6 +80,7 @@ void room_generator(room *current){
     for(int i=x; i<=x+w+1; i++){
         mvprintw(y,i,"_");
         mvprintw(y+h+1, i,"%lc",L'—');
+        strcpy(items[i][y+h+1],"lower wall");
     }
     refresh();
     for(int i=y+1; i<=y+h; i++){
@@ -378,7 +380,10 @@ int corridor_creator(room ** rooms, int n){
 ///////////at this point the blueprint of the map is generated, now we will generate the items
 
 void staircase_generator(room ** rooms, int n){
-    int selected=rand()%(n-1) +1; //cant be room 0
+    int selected;
+    do{
+    selected=rand()%(n-1) +1; //cant be room 0
+    }while(selected==enchantment_room || selected==gold_room || selected==nightmare_room);
     rooms[selected]->staircase[0]=1;
     int w=rooms[selected]->width;
     int h=rooms[selected]->height;
@@ -397,56 +402,212 @@ void staircase_generator(room ** rooms, int n){
 void pillar_generator(room ** rooms, int n, int p_num){
     for(int i=0;i<p_num;i++){
         int selected;
+        int loop_stopper=0;
         do{
-        selected=rand()%n;}
+        selected=rand()%n;
+        loop_stopper++;
+        if(loop_stopper>200 )return;}
         while(rooms[selected]->pillar_num==2);
         int w=rooms[selected]->width;
         int h=rooms[selected]->height;
         int x,y;
+        loop_stopper=0;
         do{
         x=rand()%(w-2) +2 + rooms[selected]->x; //cant make the pillar block the door or the staircase
-        y=rand()%(h-2) +2 + rooms[selected]->y;}
+        y=rand()%(h-2) +2 + rooms[selected]->y;
+        loop_stopper++;
+        if(loop_stopper>200 )return;}
         while(mvinch(y,x)!='.' || mvinch(y-1,x)!='.' || mvinch(y+1,x)!='.' || mvinch(y,x+1)!='.' || mvinch(y,x-1)!='.');
         attron(A_BOLD);
         mvprintw(y,x,"O");
         attroff(A_BOLD);
         refresh();
-        rooms[selected]->pillar_coordinates[rooms[selected]->pillar_num][1]=x;
-        rooms[selected]->pillar_coordinates[rooms[selected]->pillar_num][2]=y;
+        strcpy(items[x][y],"pillar");
         rooms[selected]->pillar_num+=1;
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+void window_creator(room **rooms,int total_room, int n){
+    for(int i=0;i<n;i++){
+        int s=0;
+        int num;
+        int loop_stopper=0;
+        while(s==0){
+        do{
+        num=rand()%total_room;
+        loop_stopper++;
+        if(loop_stopper>200 )return;}while(num==enchantment_room || num==gold_room || num==nightmare_room);
+        int x=rand()%(rooms[num]->width);
+        int y=rand()%(rooms[num]->height);
+        int random=rand()%3;
+        if(random==0 && mvinch(rooms[num]->y, x+1+rooms[num]->x)=='_'){
+            mvprintw(rooms[num]->y, x+1+rooms[num]->x, "=");
+            s=1;
+        }
+        else if(random==1 && mvinch(y+1+rooms[num]->y, rooms[num]->x)=='|'){
+            mvprintw(y+1+rooms[num]->y, rooms[num]->x, "=");
+            s=1;
+        }
+        else if(random==2 && mvinch(y+1+rooms[num]->y, 1+rooms[num]->width+rooms[num]->x)=='|'){
+            mvprintw(y+1+rooms[num]->y, 1+rooms[num]->width+rooms[num]->x, "=");
+            s=1;
+        }
+        }
+    }
+    refresh();
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+
+void enchantment_room_generator(room ** rooms, int n){
+    init_color(COLOR_GREEN,300,700,0);
+    init_pair(9,COLOR_GREEN, COLOR_BLACK);
+    for(int i=1;i<n;i++){
+        int loop_stopper=0;
+        if(rooms[i]->doors==1 && i!=gold_room && i!=nightmare_room){
+            int w=rooms[i]->width;
+            int h=rooms[i]->height;
+            int num=rand()%2 +3; //3 to 5 enchantments
+            for(int j=0;j<num;j++){
+            int x,y;
+            do{
+            x=rand()%(w-2) +2 + rooms[i]->x; 
+            y=rand()%(h-2) +2 + rooms[i]->y;
+            loop_stopper++;
+            if(loop_stopper>200 )return;}
+            while(mvinch(y,x)!='.' || mvinch(y-1,x)!='.' || mvinch(y+1,x)!='.' || mvinch(y,x+1)!='.' || mvinch(y,x-1)!='.');
+            int random=rand()%9; //theres a 1 in 3 chance for each enchantment
+            if((random%3)==0){
+                init_pair(3, COLOR_GREEN, COLOR_GREEN);
+                attron(A_DIM | COLOR_PAIR(3));
+                mvprintw(y,x,"%lc",L'🏺');
+                attroff(A_DIM | COLOR_PAIR(3));
+                strcpy(items[x][y],"Enchantment of Health");
+            }
+            else if((random%3)==1){
+                init_pair(4, COLOR_CYAN, COLOR_CYAN);
+                attron(COLOR_PAIR(4));
+                mvprintw(y,x,"%lc",L'🏺');
+                attroff(COLOR_PAIR(4));
+                strcpy(items[x][y],"Enchantment of Speed");
+                }
+            else{
+                init_color(COLOR_RED,800,0,0);
+                init_pair(5, COLOR_RED, COLOR_RED);
+                attron(COLOR_PAIR(5));
+                mvprintw(y,x,"%lc",L'🏺');
+                attroff(COLOR_PAIR(5));
+                strcpy(items[x][y],"Enchantment of Damage");
+                }
+            }
+            attron(COLOR_PAIR(9));
+            for(int j=rooms[i]->x; j<=rooms[i]->x+w+1; j++){
+                mvprintw(rooms[i]->y, j, "_");
+                strcpy(items[j][rooms[i]->y],"upper wall green");
+                mvprintw(rooms[i]->y + h+1, j, "%lc",L'—');
+                strcpy(items[j][rooms[i]->y + h+1],"lower wall green");
+            }
+            for(int j=rooms[i]->y+1; j<=rooms[i]->y+h; j++){
+                mvprintw(j, rooms[i]->x, "|");
+                strcpy(items[rooms[i]->x][j],"side wall green");
+                mvprintw(j, rooms[i]->x + w+1, "|");
+                strcpy(items[rooms[i]->x + w+1][j],"side wall green");
+            }
+            attroff(COLOR_PAIR(9));
+            mvprintw(rooms[i]->door_coordinates[0][2],rooms[i]->door_coordinates[0][1],"+");
+            enchantment_room=i;
+            break;
+        }
+    }
+    refresh();
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+
+void nightmare_room_generator(room ** rooms, int n){
+    init_pair(19,COLOR_MAGENTA, COLOR_BLACK);
+    for(int i=1;i<n;i++){
+        int loop_stopper=0;
+        if(rooms[i]->doors==1 && i!=gold_room && i!=enchantment_room){
+            int w=rooms[i]->width;
+            int h=rooms[i]->height;
+            int x,y;
+            do{
+            x=rand()%(w-2) +2 + rooms[i]->x; 
+            y=rand()%(h-2) +2 + rooms[i]->y;
+            loop_stopper++;
+            if(loop_stopper>200 )return;}
+            while(mvinch(y,x)!='.' || mvinch(y-1,x)!='.' || mvinch(y+1,x)!='.' || mvinch(y,x+1)!='.' || mvinch(y,x-1)!='.');
+            mvprintw(y,x,"%lc",L'🧈');
+            strcpy(items[x][y],"Fake Gold");
+            loop_stopper=0;
+            do{
+            x=rand()%(w-2) +2 + rooms[i]->x; 
+            y=rand()%(h-2) +2 + rooms[i]->y;
+            loop_stopper++;
+            if(loop_stopper>200 )return;}
+            while(mvinch(y,x)!='.' || mvinch(y-1,x)!='.' || mvinch(y+1,x)!='.' || mvinch(y,x+1)!='.' || mvinch(y,x-1)!='.');
+            mvprintw(y,x,"%lc",L'🏺');
+            strcpy(items[x][y],"Fake Enchantment");
+
+            attron(COLOR_PAIR(19));
+            for(int j=rooms[i]->x; j<=rooms[i]->x+w+1; j++){
+                mvprintw(rooms[i]->y, j, "_");
+                strcpy(items[j][rooms[i]->y],"upper wall purple");
+                mvprintw(rooms[i]->y + h+1, j, "%lc",L'—');
+                strcpy(items[j][rooms[i]->y + h+1],"lower wall purple");
+            }
+            for(int j=rooms[i]->y+1; j<=rooms[i]->y+h; j++){
+                mvprintw(j, rooms[i]->x, "|");
+                strcpy(items[rooms[i]->x][j],"side wall purple");
+                mvprintw(j, rooms[i]->x + w+1, "|");
+                strcpy(items[rooms[i]->x + w+1][j],"side wall purple");
+            }
+            attroff(COLOR_PAIR(19));
+            mvprintw(rooms[i]->door_coordinates[0][2],rooms[i]->door_coordinates[0][1],"+");
+            refresh();
+            nightmare_room=i;
+            break;
+        }
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-int gold_generator(room ** rooms, int n, int g_num){ //every difficulty has 3 or 4 gold pieces on the map
+void gold_generator(room ** rooms, int n, int g_num){ //every difficulty has 3 or 4 gold pieces on the map
     for(int i=0;i<g_num;i++){
         int selected;
+        int loop_stopper=0;
         do{
-        selected=rand()%n;}
-        while(rooms[selected]->gold_num>=1);
+        selected=rand()%n;
+        loop_stopper++;
+        if(loop_stopper>200 )return;}
+        while(rooms[selected]->gold_num>=1 || selected==enchantment_room || selected==gold_room || selected==nightmare_room);
         int w=rooms[selected]->width;
         int h=rooms[selected]->height;
         int x,y;
+        loop_stopper=0;
         do{
         x=rand()%(w-2) +2 + rooms[selected]->x; 
-        y=rand()%(h-2) +2 + rooms[selected]->y;}
+        y=rand()%(h-2) +2 + rooms[selected]->y;
+        loop_stopper++;
+        if(loop_stopper>200 )return;}
         while(mvinch(y,x)!='.' || mvinch(y-1,x)!='.' || mvinch(y+1,x)!='.' || mvinch(y,x+1)!='.' || mvinch(y,x-1)!='.' || mvinch(y,x+2)!='.' || mvinch(y,x-2)!='.');
         int random=rand()%10; //theres a 1 in 10 chance of getting black gold
         if(random==0){
             mvprintw(y,x,"%lc",L'🔮');
-            rooms[selected]->gold_coordinates[0]=1;
+            strcpy(items[x][y],"Obsidian");
 
         }
         else{
             mvprintw(y,x,"%lc",L'🧈');
-            rooms[selected]->gold_coordinates[0]=0;
+             strcpy(items[x][y],"Gold");
 
             }
         refresh();
         rooms[selected]->gold_num+=1;
-        rooms[selected]->gold_coordinates[1]=x;
-        rooms[selected]->gold_coordinates[2]=y;
     }
 }
 
@@ -456,15 +617,21 @@ int gold_generator(room ** rooms, int n, int g_num){ //every difficulty has 3 or
 void enchantment_generator(room ** rooms, int n, int e_num){ //difficulty 1: 0 or 1, difficulty 2: 0 to 2, difficulty 3: 0 to 3
     for(int i=0;i<e_num;i++){
         int selected;
+        int loop_stopper=0;
         do{
-        selected=rand()%n;}
-        while(rooms[selected]->enchant_num>=1);
+        selected=rand()%n;
+        loop_stopper++;
+        if(loop_stopper>200 )return;}
+        while(rooms[selected]->enchant_num>=1 || selected==enchantment_room || selected==gold_room || selected==nightmare_room);
         int w=rooms[selected]->width;
         int h=rooms[selected]->height;
         int x,y;
+        loop_stopper=0;
         do{
         x=rand()%(w-2) +2 + rooms[selected]->x; 
-        y=rand()%(h-2) +2 + rooms[selected]->y;}
+        y=rand()%(h-2) +2 + rooms[selected]->y;
+        loop_stopper++;
+        if(loop_stopper>200 )return;}
         while(mvinch(y,x)!='.' || mvinch(y-1,x)!='.' || mvinch(y+1,x)!='.' || mvinch(y,x+1)!='.' || mvinch(y,x-1)!='.');
         int random=rand()%9; //theres a 1 in 3 chance for each enchantment
         if((random%3)==0){
@@ -472,14 +639,14 @@ void enchantment_generator(room ** rooms, int n, int e_num){ //difficulty 1: 0 o
             attron(A_DIM | COLOR_PAIR(3));
             mvprintw(y,x,"%lc",L'🏺');
             attroff(A_DIM | COLOR_PAIR(3));
-            rooms[selected]->enchant_coordinates[0]=1;
+            strcpy(items[x][y],"Enchantment of Health");
         }
         else if((random%3)==1){
             init_pair(4, COLOR_CYAN, COLOR_CYAN);
             attron(COLOR_PAIR(4));
             mvprintw(y,x,"%lc",L'🏺');
             attroff(COLOR_PAIR(4));
-            rooms[selected]->enchant_coordinates[0]=2;
+            strcpy(items[x][y],"Enchantment of Speed");
             }
         else{
             init_color(COLOR_RED,800,0,0);
@@ -487,12 +654,10 @@ void enchantment_generator(room ** rooms, int n, int e_num){ //difficulty 1: 0 o
             attron(COLOR_PAIR(5));
             mvprintw(y,x,"%lc",L'🏺');
             attroff(COLOR_PAIR(5));
-            rooms[selected]->enchant_coordinates[0]=3;
+            strcpy(items[x][y],"Enchantment of Damage");
             }
         refresh();
         rooms[selected]->enchant_num+=1;
-        rooms[selected]->enchant_coordinates[1]=x;
-        rooms[selected]->enchant_coordinates[2]=y;
     }
 }
 
@@ -500,50 +665,54 @@ void enchantment_generator(room ** rooms, int n, int e_num){ //difficulty 1: 0 o
 
 void weapon_generator(room ** rooms, int n){ //each floor has 1
     int selected;
+    int loop_stopper=0;
+    do{
     selected=rand()%n;
+    loop_stopper++;
+    if(loop_stopper>200 )return;}
+    while(selected==enchantment_room || selected==gold_room || selected==nightmare_room);
     int w=rooms[selected]->width;
     int h=rooms[selected]->height;
     int x,y;
+    loop_stopper=0;
     do{
         x=rand()%(w-2) +2 + rooms[selected]->x; 
-        y=rand()%(h-2) +2 + rooms[selected]->y;}
+        y=rand()%(h-2) +2 + rooms[selected]->y;
+        loop_stopper++;
+        if(loop_stopper>200 )return;}
     while(mvinch(y,x)!='.' || mvinch(y-1,x)!='.' || mvinch(y+1,x)!='.' || mvinch(y,x+1)!='.' || mvinch(y,x-1)!='.' || mvinch(y,x-2)!='.');
-    int random=rand()%5 +1; 
+    int random=rand()%4 +1; 
     init_color(COLOR_MAGENTA,1000,0,1000);
     init_pair(2,COLOR_MAGENTA,COLOR_BLACK);
     attron(COLOR_PAIR(2));
     if(random==1){
-        rooms[selected]->weapon_coordinates[0]=1;
         attron(A_BOLD);
-        mvprintw(y,x,"%lc",L'⚒');
+        mvprintw(y,x,"%lc",L'⚔');
         attroff(A_BOLD);
+        strcpy(items[x][y],"Sword");
     }
     else if(random==2){
         attron(A_BOLD);
         mvprintw(y,x,"%lc",L'🗡');
         attroff(A_BOLD);
+        strcpy(items[x][y],"Dagger");
     }
     else if(random==3){
         attron(A_BOLD);
-        mvprintw(y,x,"%lc",L'🪄');
+        mvprintw(y,x,"%lc",L'☦');
         attroff(A_BOLD);
+        strcpy(items[x][y],"Magic wand");
     }
     else if(random==4){
         attron(A_BOLD);
         mvprintw(y,x,"%lc",L'➴');
         attroff(A_BOLD);
+        strcpy(items[x][y],"Arrows");
     }
-    else if(random==5){
-        attron(A_BOLD);
-        mvprintw(y,x,"%lc",L'⚔');
-        attroff(A_BOLD);
-    }
+    
     attroff(COLOR_PAIR(2));
     refresh();
-    rooms[selected]->weapon_coordinates[0]=random;
     rooms[selected]->weapon_num+=1;
-    rooms[selected]->weapon_coordinates[1]=x;
-    rooms[selected]->weapon_coordinates[2]=y;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -551,24 +720,32 @@ void weapon_generator(room ** rooms, int n){ //each floor has 1
 void food_generator(room ** rooms, int n){ //each floor has 2
     for(int i=0;i<2;i++){
         int selected;
+        int loop_stopper=0;
         do{
-        selected=rand()%n;}
-        while(rooms[selected]->food_num>=1);
+        selected=rand()%n;
+        loop_stopper++;
+        if(loop_stopper>200 )return;}
+        while(rooms[selected]->food_num>=1 || selected==enchantment_room || selected==gold_room || selected==nightmare_room);
         int w=rooms[selected]->width;
         int h=rooms[selected]->height;
         int x,y;
+        loop_stopper=0;
         do{
         x=rand()%(w-2) +2 + rooms[selected]->x; 
-        y=rand()%(h-2) +2 + rooms[selected]->y;}
+        y=rand()%(h-2) +2 + rooms[selected]->y;
+        loop_stopper++;
+        if(loop_stopper>200 )return;}
         while(mvinch(y,x)!='.' || mvinch(y-1,x)!='.' || mvinch(y+1,x)!='.' || mvinch(y,x+1)!='.' || mvinch(y,x-1)!='.' || mvinch(y,x+2)!='.' || mvinch(y,x-2)!='.');
         int random=rand()%4 +1;
-        if(random==1){
+        if(random==1 || random==4){
         mvprintw(y,x,"%lc",L'🍖');
+        strcpy(items[x][y],"Food");
         }
         else if(random==2){ //aala
             attron(COLOR_PAIR(3));
             mvprintw(y,x,"%lc",L'🍖');
             attroff(COLOR_PAIR(3));
+            strcpy(items[x][y],"Exquisite Food");
         }
         else if(random==3){ //magical
             init_color(COLOR_YELLOW, 800, 800, 0);
@@ -576,18 +753,48 @@ void food_generator(room ** rooms, int n){ //each floor has 2
             attron(COLOR_PAIR(6));
             mvprintw(y,x,"%lc",L'🍖');
             attroff(COLOR_PAIR(6));
-        }
-        else if(random==4){ //rotten
-            init_pair(7,COLOR_MAGENTA,COLOR_MAGENTA);
-            attron(COLOR_PAIR(7));
-            mvprintw(y,x,"%lc",L'🍖');
-            attroff(COLOR_PAIR(7));
+            strcpy(items[x][y],"Magical Food");
         }
         refresh();
-        rooms[selected]->food_coordinates[0]=random;
         rooms[selected]->food_num+=1;
-        rooms[selected]->food_coordinates[1]=x;
-        rooms[selected]->food_coordinates[2]=y;
+    }
+}
+
+////////////////////////////////////////////////////////////////////
+
+void monster_generator(room ** rooms, int n, int difficulty){
+    int num=difficulty+2; // 3 to 5
+    int loop_breaker=0;
+    for(int i=0;i<num;i++){
+        int selected;
+        do{
+        selected=rand()%n;
+        loop_breaker++;
+        if(loop_breaker>200) return;}
+        while(rooms[selected]->monster_num>=1 || selected==enchantment_room || selected==gold_room || selected==nightmare_room);
+        int w=rooms[selected]->width;
+        int h=rooms[selected]->height;
+        int x,y;
+        loop_breaker=0;
+        do{
+        x=rand()%(w-2) +2 + rooms[selected]->x; 
+        y=rand()%(h-2) +2 + rooms[selected]->y;
+        loop_breaker++;
+        if(loop_breaker>200) return;}
+        while(mvinch(y,x)!='.' || mvinch(y-1,x)!='.' || mvinch(y+1,x)!='.' || mvinch(y,x+1)!='.' || mvinch(y,x-1)!='.' || mvinch(y,x-2)!='.');
+        int random=rand()%17;
+        if(random<=3){
+            mvprintw(y,x,"D");}
+        else if(random>3 && random<=7){
+            mvprintw(y,x,"F");}
+        else if(random>7 && random<=11){
+            mvprintw(y,x,"G");}
+        else if(random>11 && random<=14){
+            mvprintw(y,x,"S");}
+        else if(random>14 && random<=16){
+            mvprintw(y,x,"U");}
+        refresh();
+        rooms[selected]->monster_num+=1;
     }
 }
 
@@ -596,6 +803,7 @@ int total_room;
 
 room ** map_generator(){
     int difficulty=3;
+    memset(items,'\0',sizeof(items));
     setlocale(LC_ALL, "");
     initscr();
     srand(time(NULL));
@@ -603,7 +811,7 @@ room ** map_generator(){
     noecho();
     start_color();
     getmaxyx(stdscr, max_y, max_x);
-    total_room=rand()%3 +7;
+    total_room=rand()%2 +8;
     room **rooms=malloc(total_room * sizeof(room *));
     for(int i=0;i<total_room;i++){
         *(rooms+i)=malloc(sizeof(room));
@@ -611,6 +819,7 @@ room ** map_generator(){
     }
     int p=corridor_creator(rooms, total_room);
     while(p==0){
+        memset(items,'\0',sizeof(items));
         clear();
         for(int i=0;i<total_room;i++){
             free(*(rooms+i));}
@@ -622,12 +831,17 @@ room ** map_generator(){
         }
         p=corridor_creator(rooms, total_room);
     }
+    enchantment_room_generator(rooms,total_room);
+    nightmare_room_generator(rooms,total_room);
     staircase_generator(rooms,total_room);
     pillar_generator(rooms,total_room, difficulty*2+2);
+    window_creator(rooms,total_room, rand()%4+2);
     enchantment_generator(rooms,total_room,rand()%(difficulty+1));
     weapon_generator(rooms, total_room);
     food_generator(rooms,total_room);
     gold_generator(rooms,total_room, rand()%2+3);
+    monster_generator(rooms,total_room,difficulty);
+    
 
     return rooms;
     

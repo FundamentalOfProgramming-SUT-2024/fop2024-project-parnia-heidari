@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <time.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 
 ///possible improvements: make a box for the menus. make an exit section for every page.
 
@@ -49,7 +51,7 @@ void welcome_printer(){
 ///////////////////////////////////////////////////
 
 int check_username(char user[]){
-    FILE *ptr=fopen("newuser.txt","r");
+    FILE *ptr=fopen("users.txt","r");
     char info[100];
     while(fgets(info,100,ptr)){
         info[strcspn(info, "\n")]='\0';
@@ -59,9 +61,15 @@ int check_username(char user[]){
         char pass[100];
         char email[100];
         char breaker[100];
+        char a[100]; char b[100]; 
+        char c[100]; char d[100]; 
         fgets(pass,100,ptr);
         fgets(email,100,ptr);
         fgets(breaker,100,ptr);
+        fgets(a,100,ptr);
+        fgets(b,100,ptr);
+        fgets(c,100,ptr);
+        fgets(d,100,ptr);
     }
     fclose(ptr);
     return 1;
@@ -317,12 +325,20 @@ int create_account(){
     if(make_email(email)==0)
         return 0;
 
-    FILE *fptr=fopen("newuser.txt","a");
+    FILE *fptr=fopen("users.txt","a");
     fputs(new_user,fptr);
     fputs("\n",fptr);
     fputs(pass,fptr);
     fputs("\n",fptr);
     fputs(email,fptr);
+    fputs("\n",fptr);
+    fputs("0",fptr);
+    fputs("\n",fptr);
+    fputs("0",fptr);
+    fputs("\n",fptr);
+    fputs("0",fptr);
+    fputs("\n",fptr);
+    fputs("0",fptr);
     fputs("\n",fptr);
     fputs("$$$$$$$$$$$$$$$$$$$$",fptr);
     fputs("\n",fptr);
@@ -333,7 +349,7 @@ int create_account(){
 ///////////////////////////////////////////////////////////////////////////////
 
 char *check_user_login(char user[]){
-    FILE *ptr=fopen("newuser.txt","r");
+    FILE *ptr=fopen("users.txt","r");
     char info[100];
     while(fgets(info,100,ptr)){
         char pass[100];
@@ -487,6 +503,137 @@ char *login(){
 }
 
 //////////////////////////////////////////////////////////////////////////////
+void first_page();
+void setting(char *user);
+
+
+void setting(char *user){
+    char *d="Difficulty";
+    char *e="Music";
+    char *f="Character Design";
+    mvprintw(max_y/5+22, max_x/2-8,"Press e to go back.");
+    button_maker(max_y/5+7,max_x/2-10,1,d);
+    button_maker(max_y/5+12,max_x/2-10,0,e);
+    button_maker(max_y/5+17,max_x/2-10,0,f);
+    int cur_but=1;
+    while(1){
+        int cmdd=getch();
+        switch(cmdd){
+        case KEY_UP:
+        cur_but-=1;
+        if(cur_but==0) cur_but=3;
+        if(cur_but==1){
+            button_maker(max_y/5+7,max_x/2-10,1,d);
+            button_maker(max_y/5+12,max_x/2-10,0,e);}
+        else if(cur_but==2){
+            button_maker(max_y/5+12,max_x/2-10,1,e);
+            button_maker(max_y/5+17,max_x/2-10,0,f);}
+        else if(cur_but==3){
+            button_maker(max_y/5+17,max_x/2-10,1,f);
+            button_maker(max_y/5+7,max_x/2-10,0,d);}
+        break;
+        case KEY_DOWN:
+            cur_but+=1;
+            if(cur_but==4) cur_but=1;
+            if(cur_but==2){
+                button_maker(max_y/5+7,max_x/2-10,0,d);
+                button_maker(max_y/5+12,max_x/2-10,1,e);}
+            else if(cur_but==3){
+                button_maker(max_y/5+12,max_x/2-10,0,e);
+                button_maker(max_y/5+17,max_x/2-10,1,f);}
+            else if(cur_but==1){
+                button_maker(max_y/5+17,max_x/2-10,0,f);
+                button_maker(max_y/5+7,max_x/2-10,1,d);}
+            break;
+            case 'e':
+                clear();
+                menu(user);
+                break;
+            case '\n':
+                if(cur_but==1); //COMPLETE THIS<ALSO ADD A HOW TO PLAY
+                break;
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void menu(char *user){
+    clear();
+    attron(A_BOLD);
+    mvprintw(max_y/5-2, max_x/2-7,"Welcome, %s!",user);
+    mvprintw(max_y/5+27, max_x/2-7,"Press e to exit.");
+    attroff(A_BOLD);
+    char *c="New Game";
+    char *d="Resume Game";
+    char *e="Scoreboard";
+    char *f="Profile";
+    char *g="Setting";
+    int cur_but=1;
+    button_maker(max_y/5+2,max_x/2-10,1,c);
+    button_maker(max_y/5+7,max_x/2-10,0,d);
+    button_maker(max_y/5+12,max_x/2-10,0,e);
+    button_maker(max_y/5+17,max_x/2-10,0,f);
+    button_maker(max_y/5+22,max_x/2-10,0,g);
+    refresh();
+    while(1){
+        int cmdd=getch();
+        switch(cmdd){
+        case KEY_UP:
+        cur_but-=1;
+        if(cur_but==0) cur_but=5;
+        if(cur_but==1){
+            button_maker(max_y/5+2,max_x/2-10,1,c);
+            button_maker(max_y/5+7,max_x/2-10,0,d);}
+        else if(cur_but==2){
+            button_maker(max_y/5+7,max_x/2-10,1,d);
+            button_maker(max_y/5+12,max_x/2-10,0,e);}
+        else if(cur_but==3){
+            button_maker(max_y/5+12,max_x/2-10,1,e);
+            button_maker(max_y/5+17,max_x/2-10,0,f);}
+        else if(cur_but==4){
+            button_maker(max_y/5+17,max_x/2-10,1,f);
+            button_maker(max_y/5+22,max_x/2-10,0,g);}
+        else if(cur_but==5){
+            button_maker(max_y/5+22,max_x/2-10,1,g);
+            button_maker(max_y/5+2,max_x/2-10,0,c);}
+        break;
+        case KEY_DOWN:
+            cur_but+=1;
+            if(cur_but==6) cur_but=1;
+            if(cur_but==2){
+                button_maker(max_y/5+2,max_x/2-10,0,c);
+                button_maker(max_y/5+7,max_x/2-10,1,d);}
+            else if(cur_but==3){
+                button_maker(max_y/5+7,max_x/2-10,0,d);
+                button_maker(max_y/5+12,max_x/2-10,1,e);}
+            else if(cur_but==4){
+                button_maker(max_y/5+12,max_x/2-10,0,e);
+                button_maker(max_y/5+17,max_x/2-10,1,f);}
+            else if(cur_but==5){
+                button_maker(max_y/5+17,max_x/2-10,0,f);
+                button_maker(max_y/5+22,max_x/2-10,1,g);}
+            else if(cur_but==1){
+                button_maker(max_y/5+22,max_x/2-10,0,g);
+                button_maker(max_y/5+2,max_x/2-10,1,c);}
+            break;
+            case 'e':
+                clear();
+                first_page();
+                break;
+            case '\n':
+                if(cur_but==5){
+                    clear();
+                    setting(user);
+                }
+                break;
+
+        }
+    }
+
+}
+
+//////////////////////////////////////////////////////////////////////////////
 
 void first_page(){
 
@@ -548,6 +695,9 @@ void first_page(){
                     if(user==NULL){
                         clear();
                         first_page();
+                    }
+                    else{
+                        menu(user);
                     }
                 }
                 break;
