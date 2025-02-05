@@ -15,11 +15,260 @@
 
 int max_y, max_x;
 
-char musiclist[6][100]={"Fading Footsteps in the Forest.mp3","Passages .mp3","Tales Beneath the Willow .mp3","The old Oak .mp3","The Vagabond .mp3","None"};
-int current_music=0;
+int allowed_to_resume=0;
 
 
 ///////////////////////////////////////////////////////
+
+void pause_function(char *user){
+    FILE *ptr=fopen("users.txt","r");
+    FILE *temp=fopen("temp.txt","w");
+    char info[100];
+    while(fgets(info,100,ptr)){
+        char pass[100];
+        char email[100];
+        char breaker[100];
+        int gold; int score; int exp;
+        fgets(pass,100,ptr);
+        fgets(email,100,ptr);
+        fscanf(ptr,"%d\n",&gold);
+        fscanf(ptr,"%d\n",&score);
+        fscanf(ptr,"%d\n",&exp);
+        fscanf(ptr,"%d",&allowed_to_resume);
+        fgets(breaker,100,ptr);
+        info[strcspn(info, "\n")]='\0';
+        if(strcmp(user,info)==0){
+            fprintf(temp,"%s\n%s%s%d\n%d\n%d\n1%s",info,pass,email,gold+gold_to_be_added,score+score_to_be_added,exp,breaker);
+        }
+        else{
+            fprintf(temp,"%s\n%s%s%d\n%d\n%d\n%d%s",info,pass,email,gold,score,exp,allowed_to_resume,breaker);
+        }
+    }  
+    fclose(ptr);
+    fclose(temp);
+    remove("users.txt");
+    rename("temp.txt","users.txt");
+    clear();
+}
+
+void loose_page(char *user){
+    FILE *ptr=fopen("users.txt","r");
+    FILE *temp=fopen("temp.txt","w");
+    char info[100];
+    while(fgets(info,100,ptr)){
+        char pass[100];
+        char email[100];
+        char breaker[100];
+        int gold; int score; int exp;
+        fgets(pass,100,ptr);
+        fgets(email,100,ptr);
+        fscanf(ptr,"%d\n",&gold);
+        fscanf(ptr,"%d\n",&score);
+        fscanf(ptr,"%d\n",&exp);
+        fscanf(ptr,"%d",&allowed_to_resume);
+        fgets(breaker,100,ptr);
+        info[strcspn(info, "\n")]='\0';
+        if(strcmp(user,"")==0){break;}
+        if(strcmp(user,info)==0 && strcmp(user,"Guest")!=0){
+            fprintf(temp,"%s\n%s%s%d\n%d\n%d\n0%s",info,pass,email,gold+gold_to_be_added,score+score_to_be_added,exp,breaker);
+        }
+        else{
+            fprintf(temp,"%s\n%s%s%d\n%d\n%d\n%d%s",info,pass,email,gold,score,exp,allowed_to_resume,breaker);
+        }
+    }  
+    fclose(ptr);
+    fclose(temp);
+    remove("users.txt");
+    rename("temp.txt","users.txt");
+    clear();
+    attron(A_BOLD | COLOR_PAIR(21));
+    mvprintw(10,75,"You have fallen, brave warrior...");
+    mvprintw(11,55,"Your journey ends here, but your legend will echo through the ages.");
+    attroff(A_BOLD | COLOR_PAIR(21));
+    attron(A_BOLD | COLOR_PAIR(10));
+    mvprintw(13,85,"Gold +%d",gold_to_be_added);
+    mvprintw(14,85,"Score +%d",score_to_be_added);
+    attroff(A_BOLD | COLOR_PAIR(10));
+
+mvprintw(20,50,"                                 _____  _____");
+mvprintw(21,50,"                                <     `/     |");
+mvprintw(22,50,"                                 >          (");
+mvprintw(23,50,"                                |   _     _  |");
+mvprintw(24,50,"                                |  |_) | |_) |");
+mvprintw(25,50,"                                |  | \\ | |   |");
+mvprintw(26,50,"                                |            |");
+mvprintw(27,50,"                 ______.______%%_|            |__________  _____");
+mvprintw(28,50,"               _/                                       \\|     |");
+mvprintw(29,50,"              |                                                <");
+mvprintw(30,50,"              |_____.-._________              ____/|___________|");
+mvprintw(31,50,"                                |            |");
+mvprintw(32,50,"                                |            |");
+mvprintw(33,50,"                                |            |");
+mvprintw(34,50,"                                |            |");
+mvprintw(35,50,"                                |   _        <");
+mvprintw(36,50,"                                |__/         |");
+mvprintw(37,50,"                                 / `--.      |");
+mvprintw(38,50,"                               %%|            |%%");
+mvprintw(39,50,"                           |/.%%%%|          -< @%%%%%%");
+mvprintw(40,50,"                           `\\%%`@|     v      |@@%%@%%%%    ");
+mvprintw(41,50,"                         .%%%%%%@@@|%%    |    %% @@@%%%%@%%%%%%%%");
+mvprintw(42,50,"                    _.%%%%%%%%%%%%@@@@@@%%%%_/%%\\_%%@@%%%%@@@@@@@%%%%%%%%%%%%");
+
+mvprintw(28,120,"        '.,");
+mvprintw(29,120,"          'b      *");
+mvprintw(30,120,"           '$    #.");
+mvprintw(31,120,"            $:   #:");
+mvprintw(32,120,"            *#  @):");
+mvprintw(33,120,"            :@,@):   ,.**:'");
+mvprintw(34,120,"  ,         :@@*: ..**'");
+mvprintw(35,120,"   '#o.    .:(@'.@*\"'");
+mvprintw(36,120,"      'bq,..:,@@*'   ,*");
+mvprintw(37,120,"      ,p$q8,:@)'  .p*'");
+mvprintw(38,120,"     '    '@@Pp@@*'");
+mvprintw(39,120,"           Y7'.'");
+mvprintw(40,120,"          :@):.");
+mvprintw(41,120,"         .:@:'.");
+mvprintw(42,120,"       .::(@:.    ");
+
+mvprintw(28,10,"                            '.,");
+mvprintw(29,10,"                              'b      *");
+mvprintw(30,10,"                               '$    #.");
+mvprintw(31,10,"                                $:   #:");
+mvprintw(32,10,"                                *#  @):");
+mvprintw(33,10,"                                :@,@):   ,.**:'");
+mvprintw(34,10,"                      ,         :@@*: ..**'");
+mvprintw(35,10,"                       '#o.    .:(@'.@*\"'");
+mvprintw(36,10,"                          'bq,..:,@@*'   ,*");
+mvprintw(37,10,"                          ,p$q8,:@)'  .p*'");
+mvprintw(38,10,"                         '    '@@Pp@@*'");
+mvprintw(39,10,"                               Y7'.'");
+mvprintw(40,10,"                              :@):.");
+mvprintw(41,10,"                             .:@:'.");
+mvprintw(42,10,"                           .::(@:.    ");
+
+refresh();
+getch();
+clear();
+
+}
+
+void win_page(char *user){
+    FILE *ptr=fopen("users.txt","r");
+    FILE *temp=fopen("temp.txt","w");
+    char info[100];
+    while(fgets(info,100,ptr)){
+        char pass[100];
+        char email[100];
+        char breaker[100];
+        int gold; int score; int exp;
+        fgets(pass,100,ptr);
+        fgets(email,100,ptr);
+        fscanf(ptr,"%d\n",&gold);
+        fscanf(ptr,"%d\n",&score);
+        fscanf(ptr,"%d\n",&exp);
+        fscanf(ptr,"%d",&allowed_to_resume);
+        fgets(breaker,100,ptr);
+        info[strcspn(info, "\n")]='\0';
+        if(strcmp(user,"")==0){break;}
+        if(strcmp(user,info)==0 && strcmp(user,"Guest")!=0){
+            fprintf(temp,"%s\n%s%s%d\n%d\n%d\n0%s",info,pass,email,gold+gold_to_be_added,score+score_to_be_added,exp+1,breaker);
+        }
+        else{
+            fprintf(temp,"%s\n%s%s%d\n%d\n%d\n%d%s",info,pass,email,gold,score,exp,allowed_to_resume,breaker);
+        }
+    }  
+    fclose(ptr);
+    fclose(temp);
+    remove("users.txt");
+    rename("temp.txt","users.txt");
+    clear();
+    attron(A_BOLD | COLOR_PAIR(9));
+    mvprintw(10,75,"Congratulations, Fierce Warrior!");
+    mvprintw(11,77,"You have escaped the dungeon!");
+    attroff(A_BOLD | COLOR_PAIR(9));
+    attron(A_BOLD | COLOR_PAIR(10));
+    mvprintw(13,87,"Gold +%d",gold_to_be_added);
+    mvprintw(14,87,"Score +%d",score_to_be_added);
+    mvprintw(15,85,"Experience +1");
+    attroff(A_BOLD | COLOR_PAIR(10));
+mvprintw(20,60,"                                  |>>>");
+mvprintw(21,60,"                                  |");
+mvprintw(22,60,"                    |>>>      _  _|_  _         |>>>");
+mvprintw(23,60,"                    |        |;| |;| |;|        |");
+mvprintw(24,60,"                _  _|_  _    \\\\.    .  /    _  _|_  _");
+mvprintw(25,60,"               |;|_|;|_|;|    \\\\:. ,  /    |;|_|;|_|;|");
+mvprintw(26,60,"               \\\\..      /    ||;   . |    \\\\.    .  /");
+mvprintw(27,60,"                \\\\.  ,  /     ||:  .  |     \\\\:  .  /");
+mvprintw(28,60,"                 ||:   |_   _ ||_ . _ | _   _||:   |");
+mvprintw(29,60,"                 ||:  .|||_|;|_|;|_|;|_|;|_|;||:.  |");
+mvprintw(30,60,"                 ||:   ||.    .     .      . ||:  .|");
+mvprintw(31,60,"                 ||: . || .     . .   .  ,   ||:   |       \\,/");
+mvprintw(32,60,"                 ||:   ||:  ,  _______   .   ||: , |            /`\\");
+mvprintw(33,60,"                 ||:   || .   /+++++++\\    . ||:   |");
+mvprintw(34,60,"                 ||:   ||.    |+++++++| .    ||: . |");
+mvprintw(35,60,"              __ ||: . ||: ,  |+++++++|.  . _||_   |");
+mvprintw(36,60,"     ____--`~    '--~~__|.    |+++++__|----~    ~`---,              ___");
+mvprintw(37,60,"-~--~                   ~---__|,--~'                  ~~----_____-~'   `~----~~");
+
+mvprintw(28,130,"               ,@@@@@@@,");
+mvprintw(29,130,"       ,,,.   ,@@@@@@/@@,  .oo8888o.");
+mvprintw(30,130,"    ,&%%%%&%%&&%%,@@@@@/@@@@@@,8888\\88/8o");
+mvprintw(31,130,"   ,%%&\\%%&&%%&&%%,@@@\\@@@/@@@88\\88888/88'");
+mvprintw(32,130,"   %%&&%%&%%&/%%&&%%@@\\@@/ /@@@88888\\88888'");
+mvprintw(33,130,"   %%&&%%/ %%&%%&&@@\\ V /@@' `88\\8 `/88'");
+mvprintw(34,130,"   `&%%\\ ` /%%&'    |.|        \\ '|8'");
+mvprintw(35,130,"       |o|        | |         | |");
+mvprintw(36,130,"       |.|        | |         | |");
+mvprintw(37,130,"    \\/ ._\\//_/__/  ,\\_//__\\/.  \\_//__/_");
+
+mvprintw(28,20,"               ,@@@@@@@,");
+mvprintw(29,20,"       ,,,.   ,@@@@@@/@@,  .oo8888o.");
+mvprintw(30,20,"    ,&%%%%&%%&&%%,@@@@@/@@@@@@,8888\\88/8o");
+mvprintw(31,20,"   ,%%&\\%%&&%%&&%%,@@@\\@@@/@@@88\\88888/88'");
+mvprintw(32,20,"   %%&&%%&%%&/%%&&%%@@\\@@/ /@@@88888\\88888'");
+mvprintw(33,20,"   %%&&%%/ %%&%%&&@@\\ V /@@' `88\\8 `/88'");
+mvprintw(34,20,"   `&%%\\ ` /%%&'    |.|        \\ '|8'");
+mvprintw(35,20,"       |o|        | |         | |");
+mvprintw(36,20,"       |.|        | |         | |");
+mvprintw(37,20,"    \\/ ._\\//_/__/  ,\\_//__\\/.  \\_//__/_");
+
+mvprintw(2,15,"              .");
+mvprintw(3,15,"               	");				
+mvprintw(4,15,"              |		");			
+mvprintw(5,15,"     .               /");				
+mvprintw(6,15,"      \\       I     	");			
+mvprintw(7,15,"                  /");
+mvprintw(8,15,"        \\  ,g88R_");
+mvprintw(9,15,"          d888(`  ).                   _");
+mvprintw(10,15," -  --==  888(     ).=--           .+(`  )`.");
+mvprintw(11,15,"          Y8P(       '`.          :(   .    )");
+mvprintw(12,15,"        .+(`(      .   )     .--  `.  (    ) )");
+mvprintw(13,15,"       ((    (..__.:'-'   .=(   )   ` _`  ) )");
+mvprintw(14,15,"       `(       ) )       (   .  )     (   )  ._");
+mvprintw(15,15,"         ` __.:'   )     (   (   ))     `-'.:(`  )");
+mvprintw(16,15,"      ( )       --'       `- __.'         :(      ))");
+mvprintw(17,15,"     (_.'          .')                    `(    )  ))");
+mvprintw(18,15,"                  (_  )                     ` __.:'");
+
+mvprintw(10,125,"             _                           ");       
+mvprintw(11,125,"           (`  ).                   _        ");   
+mvprintw(12,125,"          (     ).              .:(`  )`.     ");  
+mvprintw(13,125,"         _(       '`.          :(   .    )     "); 
+mvprintw(14,125,"     .=(`(      .   )     .--  `.  (    ) )    ");  
+mvprintw(15,125,"    ((    (..__.:'-'   .+(   )   ` _`  ) )     ");            
+mvprintw(16,125,"    `(       ) )       (   .  )     (   )  ._   ");
+mvprintw(17,125,"      ` __.:'   )     (   (   ))     `-'.-(`  ) ");
+mvprintw(18,125,"   ( )       --'       `- __.'         :(      )) ");
+mvprintw(19,125,"  (_.'          .')                    `(    )  ))");
+mvprintw(20,125,"               (_  )                     ` __.:'    ");   
+                                        	
+refresh();
+getch();
+clear();
+
+}
+
+////////////////////////////////////////////////////////
 
 void button_maker(int x, int y, bool is_selected, const char *label) {
     int label_length= strlen(label);
@@ -48,11 +297,56 @@ void button_maker(int x, int y, bool is_selected, const char *label) {
 /////////////////////////////////////////////////
 
 void welcome_printer(){
-    attron(A_BOLD);
-    mvprintw(max_y/4, max_x/2-10,"  WELCOME TO ROGUE!");
-    attroff(A_BOLD);
-    mvprintw(max_y/4+1, max_x/2-10," Adventure awaits..,");
+mvprintw(1,100,"                                 ==(W{==========-      /===-                      ");  
+mvprintw(2,100,"                                   ||  (.--.)         /===-_---~~~~~~~~~------____  ");
+mvprintw(3,100,"                                   | \\_,|**|,__      |===-~___                _,-' `");
+mvprintw(4,100,"                      -==\\\\        `\\ ' `--'   ),    `//~\\\\   ~~~~`---.___.-~~      ");
+mvprintw(5,100,"                  ______-==|        /`\\_. .__/\\ \\    | |  \\\\           _-~`         ");
+mvprintw(6,100,"            __--~~~  ,-/-==\\\\      (   | .  |~~~~|   | |   `\\        ,'             ");
+mvprintw(7,100,"         _-~       /'    |  \\\\     )__/==0==-\\<>/   / /      \\      /               ");
+mvprintw(8,100,"       .'        /       |   \\\\      /~\\___/~~\\/  /' /        \\   /'                ");
+mvprintw(9,100,"      /  ____  /         |    \\`\\.__/-~~   \\  |_/'  /          \\/'                  ");
+mvprintw(10,100,"     /-'~    ~~~~~---__  |     ~-/~         ( )   /'        _--~`                   ");
+mvprintw(11,100,"                       \\_|      /        _) | ;  ),   __--~~                        ");
+mvprintw(12,100,"                         '~~--_/      _-~/- |/ \\   '-~ \\                            ");
+mvprintw(13,100,"                        {\\__--_/}    / \\\\_>-|)<__\\      \\                           ");
+mvprintw(14,100,"                        /'   (_/  _-~  | |__>--<__|      |                          ");
+mvprintw(15,100,"                       |   _/) )-~     | |__>--<__|      |                          ");
+mvprintw(16,100,"                       / /~ ,_/       / /__>---<__/      |                          ");
+mvprintw(17,100,"                      o-o _//        /-~_>---<__-~      /                           ");
+mvprintw(18,100,"                      (^(~          /~_>---<__-      _-~                            ");
+mvprintw(19,100,"                     ,/|           /__>--<__/     _-~                               ");
+mvprintw(20,100,"                  ,//('(          |__>--<__|     /                  .----_          ");
+mvprintw(21,100,"                 ( ( '))          |__>--<__|    |                 /' _---_~\\        ");
+mvprintw(22,100,"              `-)) )) (           |__>--<__|    |               /'  /     ~\\`\\      ");
+mvprintw(23,100,"             ,/,'//( (             \\__>--<__\\    \\            /'  //        ||     "); 
+mvprintw(24,100,"           ,( ( ((, ))              ~-__>--<_~-_  ~--____---~' _/'/        /'      "); 
+mvprintw(25,100,"         `~/  )` ) ,/|                 ~-_~>--<_/-__       __-~ _/               ");   
+mvprintw(26,100,"       ._-~//( )/ )) `                    ~~-'_/_/ /~~~~~~~__--~               ");     
+mvprintw(27,100,"        ;'( ')/ ,)(                              ~~~~~~~~~~                 ");        
+mvprintw(28,100,"       ' ') '( (/                                                     ");
+mvprintw(28,10,"                    |>>>                        |>>>");
+mvprintw(29,10,"                    |                           |");
+mvprintw(30,10,"                _  _|_  _                   _  _|_  _");
+mvprintw(31,10,"               | |_| |_| |                 | |_| |_| |");
+mvprintw(32,10,"               \\  .      /                 \\ .    .  /");
+mvprintw(33,10,"                \\    ,  /                   \\    .  /");
+mvprintw(34,10,"                 | .   |_   _   _   _   _   _| ,   |");
+mvprintw(35,10,"                 |    .| |_| |_| |_| |_| |_| |  .  |");
+mvprintw(36,10,"                 | ,   | .    .     .      . |    .|");
+mvprintw(37,10,"                 |   . |  .     . .   .  ,   |.    |");
+mvprintw(38,10,"     ___----_____| .   |.   ,  _______   .   |   , |---~_____");
+mvprintw(39,10,"_---~            |     |  .   /+++++++\\    . | .   |         ~---_");
+mvprintw(40,10,"                 |.    | .    |+++++++| .    |   . |              ~-_");
+mvprintw(41,10,"              __ |   . |   ,  |+++++++|.  . _|__   |                 ~-_");
+mvprintw(42,10,"     ____--`~    '--~~__ .    |++++ __|----~    ~`---,              ___^~-__");
+mvprintw(43,10,"-~--~                   ~---__|,--~'                  ~~----_____-~'   `~----~");
+    attron(A_BOLD | A_STANDOUT);
+    mvprintw(max_y/4, max_x/2-8,"WELCOME TO ROGUE!");
+    attroff(A_BOLD | A_STANDOUT);
+    mvprintw(max_y/4+1, max_x/2-10," Adventure awaits...");
     mvprintw(max_y/2+3, max_x/2-10,"   press Q to quit");
+    refresh();
 }
 
 ///////////////////////////////////////////////////
@@ -71,10 +365,10 @@ int check_username(char user[]){
         char a[100]; char b[100]; char c[100];
         fgets(pass,100,ptr);
         fgets(email,100,ptr);
-        fgets(breaker,100,ptr);
         fgets(a,100,ptr);
         fgets(b,100,ptr);
         fgets(c,100,ptr);
+        fgets(breaker,100,ptr);
     }
     fclose(ptr);
     return 1;
@@ -159,7 +453,7 @@ char *random_pass_generator(){
 //////////////////////////////////////////////////////////
 
 int make_password(char pass[100]){
-    mvprintw(max_y/9*8-2, max_x/2-35,"Press \\ to receive a secret word, forged by fate,");
+    mvprintw(max_y/9*8-2, max_x/2-35,"Press \\ to receive a secret word, forged by fate.");
     curs_set(1);
     move(max_y/2-2, max_x/2-10);
     clrtoeol();
@@ -202,7 +496,7 @@ int make_password(char pass[100]){
             attron(A_BOLD | A_UNDERLINE);
             move(max_y/5*4, max_x/2-45);
             clrtoeol();
-            mvprintw(max_y/5*4, max_x/2-33,"Thy cipher must be of seven characters or more,");
+            mvprintw(max_y/5*4, max_x/2-33,"Thy cipher must be of seven characters or more.");
             attroff(A_BOLD | A_UNDERLINE);
             make_password(pass);
             break;
@@ -210,7 +504,7 @@ int make_password(char pass[100]){
             attron(A_BOLD | A_UNDERLINE);
             move(max_y/5*4, max_x/2-45);
             clrtoeol();
-            mvprintw(max_y/5*4, max_x/2-40,"Thy cipher must bear at least one character of the lower script,");
+            mvprintw(max_y/5*4, max_x/2-40,"Thy cipher must bear at least one character of the lower script.");
             attroff(A_BOLD | A_UNDERLINE);
             make_password(pass);
             break;
@@ -218,7 +512,7 @@ int make_password(char pass[100]){
             attron(A_BOLD | A_UNDERLINE);
             move(max_y/5*4, max_x/2-45);
             clrtoeol();
-            printw("Thou must ensure thy password hath at least one letter of the grand form,");
+            printw("Thou must ensure thy password hath at least one letter of the grand form.");
             attroff(A_BOLD | A_UNDERLINE);
             make_password(pass);
             break;
@@ -226,7 +520,7 @@ int make_password(char pass[100]){
             attron(A_BOLD | A_UNDERLINE);
             move(max_y/5*4, max_x/2-45);
             clrtoeol();
-            mvprintw(max_y/5*4, max_x/2-35,"Thy secret word must needs bear at least one numeral,");
+            mvprintw(max_y/5*4, max_x/2-35,"Thy secret word must needs bear at least one numeral.");
             attroff(A_BOLD | A_UNDERLINE);
             make_password(pass);
             break;
@@ -296,7 +590,7 @@ int make_email(char email[100]){
     curs_set(0);
     if(check_email(email)==0){
         attron(A_BOLD | A_UNDERLINE);
-        mvprintw(max_y/5*4, max_x/2-35,"Thy missive must needs be crafted in the proper manner,");
+        mvprintw(max_y/5*4, max_x/2-35,"Thy missive must needs be crafted in the proper manner.");
         attroff(A_BOLD | A_UNDERLINE);
         make_email(email);
     }
@@ -311,7 +605,7 @@ int make_email(char email[100]){
 
 int create_account(){
     clear();
-    mvprintw(max_y/4, max_x/2-50,"Dear Questor, please enter the name you wish to be recognized by in this realm,");
+    mvprintw(max_y/4, max_x/2-50,"Dear Questor, please enter the name you wish to be recognized by in this realm.");
     mvprintw(max_y/3, max_x/2-30,"Questor's Title : ");
     mvprintw(max_y/2-2, max_x/2-30,"Cipher of Trust : ");
     mvprintw(max_y/2+3, max_x/2-33,"Electronic Missive : ");
@@ -343,7 +637,7 @@ int create_account(){
     fputs("\n",fptr);
     fputs("0",fptr); //experience
     fputs("\n",fptr);
-    fputs("$$$$$$$$$$$$$$$$$$$$",fptr);
+    fputs("0$$$$$$$$$$$$$$$$$$$$",fptr);
     fputs("\n",fptr);
     fclose(fptr);
     return 1;
@@ -361,9 +655,9 @@ char *check_user_login(char user[]){
         int gold; int score; int exp;
         fgets(pass,100,ptr);
         fgets(email,100,ptr);
-        fscanf(ptr,"%d",&gold);
-        fscanf(ptr,"%d",&score);
-        fscanf(ptr,"%d",&exp);
+        fscanf(ptr,"%d\n",&gold);
+        fscanf(ptr,"%d\n",&score);
+        fscanf(ptr,"%d\n",&exp);
         fgets(breaker,100,ptr);
         info[strcspn(info, "\n")]='\0';
         if(strcmp(user,info)==0){
@@ -409,7 +703,7 @@ char *login_username(char user[]){
     char *pass=check_user_login(user);
     if(pass==NULL){
         attron(A_BOLD | A_UNDERLINE);
-        mvprintw(max_y/5*3, max_x/2-30,"No such name exists in this realm,");
+        mvprintw(max_y/5*3, max_x/2-30,"No such name exists in this realm.");
         attroff(A_BOLD | A_UNDERLINE);
         move(max_y/3, max_x/2-10);
         clrtoeol();
@@ -424,7 +718,7 @@ char *login_username(char user[]){
 ///////////////////////////////////////////////////////////////////////////
 
 char *login_password(char *real_pass,char user[]){
-    mvprintw(max_y/8*7,max_x/2-35,"Forgotten your secret cipher? Press \\ to unseal it,");
+    mvprintw(max_y/8*7,max_x/2-35,"Forgotten your secret cipher? Press \\ to unseal it.");
     curs_set(1);
     move(max_y/2-2, max_x/2-10);
     clrtoeol();
@@ -452,7 +746,7 @@ char *login_password(char *real_pass,char user[]){
             clear();
             curs_set(0);
             mvprintw(max_y/2-2, max_x/2-40,"I swear upon mine honor, 'tis I, %s, attempting to enter the gates,",user);
-            mvprintw(max_y/2-1, max_x/2-37, "Should I speak falsely, may the flames of perdition consume me,");
+            mvprintw(max_y/2-1, max_x/2-37, "Should I speak falsely, may the flames of perdition consume me.");
             mvprintw(max_y/2+3,max_x/2-20,"Press Enter to continue,");
             mvprintw(max_y/2+5,max_x/2-17,"Press Q to quit,");
             refresh();
@@ -485,7 +779,7 @@ char *login_password(char *real_pass,char user[]){
         return user_copy;}
     else{
         attron(A_BOLD | A_UNDERLINE);
-        mvprintw(max_y/5*3, max_x/2-35,"Thy password is not as it should be, noble one,");
+        mvprintw(max_y/5*3, max_x/2-35,"Thy password is not as it should be, noble one.");
         attroff(A_BOLD | A_UNDERLINE);
         move(max_y/2-2, max_x/2-10);
         clrtoeol();
@@ -495,18 +789,28 @@ char *login_password(char *real_pass,char user[]){
 
 /////////////////////////////////////////////////////////////////////////////////
 
+void menu(char *user);
+
 char *login(){
     clear();
-    mvprintw(max_y/4, max_x/2-50,"Greetings, fair soul! Please declare your Title and Cipher of Trust to proceed,");
+    mvprintw(max_y/4, max_x/2-50,"Greetings, fair soul! Please declare your Title and Cipher of Trust to proceed.");
     mvprintw(max_y/3, max_x/2-30,"Questor's Title : ");
     mvprintw(max_y/2-2, max_x/2-30,"Cipher of Trust : ");
     mvprintw(max_y/9*8,max_x/2-25,"Press delete to go back,");
-    mvprintw(max_y/9*8-2,max_x/2-40,"Press '=' to enter as a humble guest, with no name to bear,");
+    mvprintw(max_y/9*8-2,max_x/2-40,"Press '=' to enter as a humble guest, with no name to bear.");
     refresh();
+    char c=getch();
     char user[100];
-    char *real_pass=login_username(user);
-    if(real_pass==NULL){return NULL;}
-    return login_password(real_pass,user);
+    if(c=='='){
+        strcpy(user,"Guest");
+        menu(user);
+    }
+    else{
+        mvprintw(max_y/9*8-2,max_x/2-40,"                                                                        ");
+        refresh();
+        char *real_pass=login_username(user);
+        if(real_pass==NULL){return NULL;}
+        return login_password(real_pass,user);}
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -518,7 +822,7 @@ typedef struct {
     int exp;
 } Player;
 
-void scoreboard(char *userr){
+void scoreboard(char *userr){ 
     cbreak(); 
     init_color(COLOR_YELLOW, 800, 800, 0);
     init_color(COLOR_GREEN,300,700,0);
@@ -532,19 +836,13 @@ void scoreboard(char *userr){
     int start_y = (screen_height - win_height) / 2;
     int start_x = (screen_width - win_width) / 2;
     WINDOW *win = newwin(win_height, win_width, start_y, start_x);
-    scrollok(win, TRUE);
+    box(win,ACS_PLUS, ACS_DIAMOND);
     wattron(win,A_BOLD);
     mvwprintw(win,2,45,"Scoreboard");
     wattroff(win,A_BOLD);
     
+    
     FILE *ptr = fopen("users.txt", "r");
-    if (!ptr) {
-        mvwprintw(win, 3, 5, "Error: Cannot open users.txt");
-        wrefresh(win);
-        getch();
-        delwin(win);
-        return;
-    }
 
     Player players[100];
     int total_players = 0;
@@ -573,26 +871,29 @@ void scoreboard(char *userr){
             }
         }
     }
-
-    for (int i = 0; i < total_players; i++) {
+    int start=0;
+    int end=start+20;
+    int place_to_print=4;
+    if(total_players<20){end=total_players;}
+    for (int i = start; i < end; i++) {
         if (i == 0) {
             wattron(win, COLOR_PAIR(30) | A_STANDOUT);
-            mvwprintw(win, 3 + i, 5, "🥇 The Grandmaster");
+            mvwprintw(win, place_to_print, 5, "🥇 The Grandmaster");
         } else if (i == 1) {
             wattron(win, COLOR_PAIR(31) | A_STANDOUT);
-            mvwprintw(win, 3 + i, 5, "🥈 The Ascendant");
+            mvwprintw(win, place_to_print, 5, "🥈 The Ascendant");
         } else if (i == 2) {
             wattron(win, COLOR_PAIR(32) | A_STANDOUT);
-            mvwprintw(win, 3 + i, 5, "🥉 The Challenger");
+            mvwprintw(win, place_to_print, 5, "🥉 The Challenger");
         } else {
-            mvwprintw(win, 3 + i, 5, "%d.", i + 1);
+            mvwprintw(win, place_to_print, 5, "%d.", i + 1);
         }
 
         if (strcmp(players[i].username, userr) == 0) {
             wattron(win, A_BLINK);
         }
 
-        mvwprintw(win, 3 + i, 23, "%s | Gold: %d | Score: %d | Exp: %d",
+        mvwprintw(win, place_to_print++, 24, "%s | Gold: %d | Score: %d | Exp: %d",
                   players[i].username, players[i].gold, players[i].score, players[i].exp);
 
         wattroff(win, A_BLINK);
@@ -605,11 +906,44 @@ void scoreboard(char *userr){
     while (1) {
         ch = getch();
         if (ch == KEY_UP) {
-            wscrl(win, 1);
+            start--;
+            wclear(win);
+            if(start<0){start=0;}
         } else if (ch == KEY_DOWN) {
-            wscrl(win, -1);
+            start++;
+            wclear(win);
+            if(start>total_players){start=total_players;}
         }
         else{break;}
+        box(win,ACS_PLUS, ACS_DIAMOND);
+        place_to_print=4;
+        mvwprintw(win,2,45,"Scoreboard");
+            for (int i = start; i < end; i++) {
+        if (i == 0) {
+            wattron(win, COLOR_PAIR(30) | A_STANDOUT);
+            mvwprintw(win, place_to_print, 5, "🥇 The Grandmaster");
+        } else if (i == 1) {
+            wattron(win, COLOR_PAIR(31) | A_STANDOUT);
+            mvwprintw(win, place_to_print, 5, "🥈 The Ascendant");
+        } else if (i == 2) {
+            wattron(win, COLOR_PAIR(32) | A_STANDOUT);
+            mvwprintw(win, place_to_print, 5, "🥉 The Challenger");
+        } else {
+            mvwprintw(win, place_to_print, 5, "%d.", i + 1);
+        }
+
+        if (strcmp(players[i].username, userr) == 0) {
+            wattron(win, A_BLINK);
+        }
+
+        mvwprintw(win, place_to_print++, 24, "%s | Gold: %d | Score: %d | Exp: %d",
+                  players[i].username, players[i].gold, players[i].score, players[i].exp);
+
+        wattroff(win, A_BLINK);
+        wattroff(win, COLOR_PAIR(30) | A_STANDOUT);
+        wattroff(win, COLOR_PAIR(31) |A_STANDOUT);
+        wattroff(win, COLOR_PAIR(32) | A_STANDOUT);
+    }
         wrefresh(win);
     }
     werase(win);
@@ -636,7 +970,7 @@ void setting(char *user){
     attron(A_BOLD);
     mvprintw(max_y/5+3, max_x/2-3,"Setting");
     attroff(A_BOLD);
-    mvprintw(max_y/5+22, max_x/2-9,"Press e to go back,");
+    mvprintw(max_y/5+22, max_x/2-9,"Press e to go back");
     button_maker(max_y/5+7,max_x/2-10,1,d);
     button_maker(max_y/5+12,max_x/2-10,0,e);
     button_maker(max_y/5+17,max_x/2-10,0,f);
@@ -787,12 +1121,35 @@ void setting(char *user){
 //////////////////////////////////////////////////////////////////////////////
 
 void menu(char *user){
+    clear();
+mvprintw(20,10,"        _");
+mvprintw(21,10,"       (_)");
+mvprintw(22,10,"       |=|");
+mvprintw(23,10,"       |=|");
+mvprintw(24,10,"   /|__|_|__|\\");
+mvprintw(25,10,"  (    ( )    )");
+mvprintw(26,10,"   \\|\\/\"/\\/|/");
+mvprintw(27,10,"     |  Y  |");
+mvprintw(28,10,"     |  |  |");
+mvprintw(29,10,"     |  |  |");
+mvprintw(30,10,"    _|  |  |");
+mvprintw(31,10," __/ |  |  |\\");
+mvprintw(32,10,"/  \\ |  |  |  \\");
+mvprintw(33,10,"   __|  |  |   |");
+mvprintw(34,10,"/\\/  |  |  |   |\\");
+mvprintw(35,10," <   +\\ |  |\\ />  \\");
+mvprintw(36,10,"  >   + \\  | LJ    |");
+mvprintw(37,10,"        + \\|+  \\  < \\");
+mvprintw(38,10,"  (O)      +    |    )");
+mvprintw(39,10,"   |             \\  /\\ ");
+mvprintw(40,10," ( | )   (o)      \\/  )");
+mvprintw(41,10,"_\\\\|//__( | )______)_/ ");
+mvprintw(42,10,"        \\\\|//");
     noecho();
     curs_set(0);
-    clear();
     attron(A_BOLD);
     mvprintw(max_y/5-2, max_x/2-7,"Welcome, %s!",user);
-    mvprintw(max_y/5+27, max_x/2-7,"Press e to exit,");
+    mvprintw(max_y/5+27, max_x/2-7,"Press e to exit");
     attroff(A_BOLD);
     char *c="New Game";
     char *d="Resume Game";
@@ -856,6 +1213,57 @@ void menu(char *user){
                     clear();
                     setting(user);
                 }
+                else if(cur_but==1){
+                    int a=new_game(user);
+                    if(a==1){
+                        win_page(user);
+                        menu(user);
+                    }
+                    else if(a==-1){
+                        loose_page(user);
+                        menu(user);
+                    }
+                    else if(a==0){
+                        pause_function(user);
+                        menu(user);
+                    }
+                }
+                else if(cur_but==2){
+                    FILE *ptr=fopen("users.txt","r");
+                    char info[100];
+                    while(fgets(info,100,ptr)){
+                        char pass[100];
+                        char email[100];
+                        char breaker[100];
+                        int gold; int score; int exp;
+                        fgets(pass,100,ptr);
+                        fgets(email,100,ptr);
+                        fscanf(ptr,"%d\n",&gold);
+                        fscanf(ptr,"%d\n",&score);
+                        fscanf(ptr,"%d\n",&exp);
+                        fscanf(ptr,"%d",&allowed_to_resume);
+                        fgets(breaker,100,ptr);
+                        info[strcspn(info, "\n")]='\0';
+                        if(strcmp(user,info)==0){
+                        fclose(ptr);
+                        break;}
+                    }  
+                    if(allowed_to_resume){
+                        int a=resume_game(user);
+                        if(a==1){
+                            win_page(user);
+                            menu(user);
+                        }
+                        else if(a==-1){
+                            loose_page(user);
+                            menu(user);
+                        }
+                        else if(a==0){
+                            pause_function(user);
+                            menu(user);
+                        }
+                    }
+                }
                 else if(cur_but==3){
                     scoreboard(user);
                 }
@@ -880,9 +1288,9 @@ void menu(char *user){
                         int gold; int score; int exp;
                         fgets(pass,100,ptr);
                         fgets(email,100,ptr);
-                        fscanf(ptr,"%d",&gold);
-                        fscanf(ptr,"%d",&score);
-                        fscanf(ptr,"%d",&exp);
+                        fscanf(ptr,"%d\n",&gold);
+                        fscanf(ptr,"%d\n",&score);
+                        fscanf(ptr,"%d\n",&exp);
                         fgets(breaker,100,ptr);
                         info[strcspn(info, "\n")]='\0';
                         if(strcmp(user,info)==0){
@@ -962,6 +1370,7 @@ void first_page(){
                 break; 
             case 'q':
                 endwin();
+                exit(0);
                 return;
             case '\n':
                 if(current_button==2){
@@ -971,7 +1380,7 @@ void first_page(){
                     else{
                         clear();
                         attron(A_BOLD);
-                        mvprintw(max_y/3, max_x/2-37,"The gates to the realm are now open,Enjoy your journey!");
+                        mvprintw(max_y/3, max_x/2-32,"The gates to the realm are now open,Enjoy your journey!");
                         attroff(A_BOLD);
                         refresh();
                         napms(4000);
@@ -1006,6 +1415,21 @@ int main() {
     setlocale(LC_ALL, "");
     initscr();
     start_color();
+    init_color(COLOR_YELLOW, 800, 800, 0);
+    init_pair(10,COLOR_YELLOW, COLOR_BLACK);
+    init_pair(1, COLOR_GREEN, COLOR_BLACK);
+    init_color(COLOR_GREEN,300,700,0);
+    init_pair(9,COLOR_GREEN, COLOR_BLACK);
+    init_pair(4, COLOR_CYAN, COLOR_CYAN);
+    init_color(COLOR_RED,800,0,0);
+    init_pair(5, COLOR_RED, COLOR_RED);
+    init_pair(19,COLOR_MAGENTA, COLOR_BLACK);
+    init_pair(3, COLOR_GREEN, COLOR_GREEN);
+    init_pair(4, COLOR_CYAN, COLOR_CYAN);
+    init_color(COLOR_MAGENTA,1000,0,1000);
+    init_pair(2,COLOR_MAGENTA,COLOR_BLACK);
+    init_color(COLOR_YELLOW, 800, 800, 0);
+    init_pair(6,COLOR_YELLOW,COLOR_YELLOW);
     keypad(stdscr, TRUE);
     noecho();
     curs_set(0);

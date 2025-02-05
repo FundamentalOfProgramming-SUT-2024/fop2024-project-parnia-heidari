@@ -16,6 +16,11 @@
 #include "map.c"
 #include "monster.c"
 
+char musiclist[6][100]={"Fading Footsteps in the Forest.mp3","Passages .mp3","Tales Beneath the Willow .mp3","The old Oak .mp3","The Vagabond .mp3","None"};
+int current_music=0;
+
+int gold_to_be_added=0;
+int score_to_be_added=0;
 
 struct inv{
     char enchantments[5][40]; //max 5
@@ -39,6 +44,9 @@ struct inv{
     int strength_timer;
     int speed;
     int speed_timer;
+    int visited_floors[6];
+    int floor_num;
+    int current_floor;
 };
 
 struct inv inventory;
@@ -82,7 +90,7 @@ void score_printer(){
 void hunger_printer(){
     if(inventory.hunger>500){inventory.hunger=500;}
     int num=inventory.hunger/50 +1;
-    mvprintw(44,172,"            ");
+    mvprintw(44,172,"             ");
     attron(COLOR_PAIR(9));
     mvprintw(44,163,"Hunger : ");
     for(int i=0;i<num;i++){
@@ -107,7 +115,7 @@ void health_printer(){
 
 void monster_health_printer(){
     int num=monster_health/5 +1;
-    mvprintw(43,18,"           ");
+    mvprintw(43,18,"              ");
     attron(COLOR_PAIR(21));
     mvprintw(43,1,"Monster Health : ");
     for(int i=0;i<num;i++){
@@ -117,9 +125,12 @@ void monster_health_printer(){
     refresh();
 }
 
-void health_checker(){
+int health_checker(){
     if(inventory.health<=0){
-        endwin();
+        return 1;
+    }
+    else{
+        return 0;
     }
 }
 
@@ -159,11 +170,12 @@ void map_saver(FILE *fptr){
             }
             else{
                 fprintf(fptr,"0 %d %d : %s\n",i,j,items[i][j]);
-                if(strcmp(items[i][j],"lower wall")!=0 && strcmp(items[i][j],"pillar")!=0
+                if(strcmp(items[i][j],"lower wall")!=0 && strcmp(items[i][j],"pillar")!=0 && strcmp(items[i][j],"winner")!=0
                 && strcmp(items[i][j],"Mace")!=0 && strcmp(items[i][j],"Dagger")!=0 && strcmp(items[i][j],"Magic wand")!=0 
                 && strcmp(items[i][j],"Arrows")!=0 && strcmp(items[i][j],"Sword")!=0 && strcmp(items[i][j],"Used arrow")!=0
-                && strcmp(items[i][j],"lower wall green")!=0 && strcmp(items[i][j],"lower wall purple")!=0
-                && strcmp(items[i][j],"side wall green")!=0 && strcmp(items[i][j],"side wall purple")!=0
+                && strcmp(items[i][j],"lower wall green")!=0 && strcmp(items[i][j],"lower wall purple")!=0 && strcmp(items[i][j],"Found Trap")!=0
+                && strcmp(items[i][j],"side wall green")!=0 && strcmp(items[i][j],"side wall purple")!=0 && strcmp(items[i][j],"lower wall yellow")!=0
+                && strcmp(items[i][j],"side wall yellow")!=0 && strcmp(items[i][j],"upper wall yellow")!=0 && strcmp(items[i][j],"Trap")!=0
                 && strcmp(items[i][j],"upper wall green")!=0 && strcmp(items[i][j],"upper wall purple")!=0){
                     i+=1;}
             }
@@ -183,9 +195,9 @@ void map_explorer(FILE *fptr, int x,int y,room **rooms){
         object[strlen(object)-1]='\0';
         for(int i=0;i<60;i++){
         if(cx==x+x_moves[i] && cy==y+y_moves[i]){
-            if(cx==rooms[nightmare_room]->door_coordinates[0][1] && cy==rooms[nightmare_room]->door_coordinates[0][2]) fprintf(temp,"1 %d %d : %s\n",cx,cy,object);
-            else if(cx>=rooms[nightmare_room]->x && cx<=rooms[nightmare_room]->width+rooms[nightmare_room]->x+1 &&
-            cy>=rooms[nightmare_room]->y && cy<=rooms[nightmare_room]->height+rooms[nightmare_room]->y+1){
+            if(cx==nightmareroom.x_door && cy==nightmareroom.y_door) fprintf(temp,"1 %d %d : %s\n",cx,cy,object);
+            else if(cx>=nightmareroom.x1 && cx<=nightmareroom.x2 &&
+            cy>=nightmareroom.y1 && cy<=nightmareroom.y2){
                 fprintf(temp,"0 %d %d : %s\n",cx,cy,object);}
             else fprintf(temp,"1 %d %d : %s\n",cx,cy,object);
             printed=1;
@@ -221,8 +233,15 @@ void map_explorer(FILE *fptr, int x,int y,room **rooms){
                 }
             }
             else{
+                strcpy(items[cx][cy],object);
                 if(strcmp(object,"Obsidian")==0){mvprintw(cy,cx,"%lc",L'🔮');}
+                else if(strcmp(object,"winner")==0){
+                    attron(COLOR_PAIR(1) | A_BOLD | A_BLINK);
+                    mvprintw(cy,cx,"%lc",L'᪥');
+                attroff(COLOR_PAIR(1) | A_BOLD | A_BLINK);}
                 else if(strcmp(object,"Gold")==0){mvprintw(cy,cx,"%lc",L'🧈');}
+                else if(strcmp(object,"Found trap")==0){mvprintw(cy,cx,"&");}
+                else if(strcmp(object,"Trap")==0){mvprintw(cy,cx,".");}
                 else if(strcmp(object,"Magical Food")==0){
                     attron(COLOR_PAIR(6));
                     mvprintw(cy,cx,"%lc",L'🍖');
@@ -284,7 +303,7 @@ void map_explorer(FILE *fptr, int x,int y,room **rooms){
                 attron(COLOR_PAIR(9));
                 mvprintw(cy,cx,"|");
                 attroff(COLOR_PAIR(9));}
-                else if(strcmp(object,"lower wall purple")==0){
+            else if(strcmp(object,"lower wall purple")==0){
                 attron(COLOR_PAIR(19));
                 mvprintw(cy,cx,"%lc",L'—');
                 attroff(COLOR_PAIR(19));}
@@ -296,13 +315,25 @@ void map_explorer(FILE *fptr, int x,int y,room **rooms){
                 attron(COLOR_PAIR(19));
                 mvprintw(cy,cx,"|");
                 attroff(COLOR_PAIR(19));}
-                }
+            else if(strcmp(object,"lower wall yellow")==0){
+                attron(COLOR_PAIR(10));
+                mvprintw(cy,cx,"%lc",L'—');
+                attroff(COLOR_PAIR(10));}
+            else if(strcmp(object,"upper wall yellow")==0){
+                attron(COLOR_PAIR(10));
+                mvprintw(cy,cx,"_");
+                attroff(COLOR_PAIR(10));}
+            else if(strcmp(object,"side wall yellow")==0){
+                attron(COLOR_PAIR(10));
+                mvprintw(cy,cx,"|");
+                attroff(COLOR_PAIR(10));}
+            }
             }
         }
         if(printed==0){fprintf(temp,"%d %d %d : %s\n",found,cx,cy,object);}
     }
-    remove("window_state.txt");
-    rename("temp.txt","window_state.txt");
+    remove(mapfile);
+    rename("temp.txt",mapfile);
     fclose(temp);
 }
 
@@ -329,6 +360,7 @@ void nightmare_map_explorer(FILE *fptr, int x,int y){
                 mvprintw(cy,cx,"%c",object[0]);
             }
             else{
+                strcpy(items[cx][cy],object);
                 if(strcmp(object,"Obsidian")==0){mvprintw(cy,cx,"%lc",L'🔮');}
                 else if(strcmp(object,"Gold")==0){mvprintw(cy,cx,"%lc",L'🧈');}
                 else if(strcmp(object,"Magical Food")==0){
@@ -403,18 +435,30 @@ void nightmare_map_explorer(FILE *fptr, int x,int y){
                 attron(COLOR_PAIR(19));
                 mvprintw(cy,cx,"|");
                 attroff(COLOR_PAIR(19));}
+            else if(strcmp(object,"lower wall yellow")==0){
+                attron(COLOR_PAIR(10));
+                mvprintw(cy,cx,"%lc",L'—');
+                attroff(COLOR_PAIR(10));}
+            else if(strcmp(object,"upper wall yellow")==0){
+                attron(COLOR_PAIR(10));
+                mvprintw(cy,cx,"_");
+                attroff(COLOR_PAIR(10));}
+            else if(strcmp(object,"side wall yellow")==0){
+                attron(COLOR_PAIR(10));
+                mvprintw(cy,cx,"|");
+                attroff(COLOR_PAIR(10));}
                 }
             }
         }
         if(printed==0){fprintf(temp,"%d %d %d : %s\n",found,cx,cy,object);}
     }
-    remove("window_state.txt");
-    rename("temp.txt","window_state.txt");
+    remove(mapfile);
+    rename("temp.txt",mapfile);
     fclose(temp);
 }
 
 void map_loader(){
-    FILE *fptr=fopen("window_state.txt","r");
+    FILE *fptr=fopen(mapfile,"r");
     int cx,cy,found;
     char object[100];
     while(fscanf(fptr, "%d %d %d : ",&found,&cx,&cy)==3){
@@ -439,8 +483,13 @@ void map_loader(){
                 }
         }
         else{
+            strcpy(items[cx][cy],object);
             if(strcmp(object,"Obsidian")==0){mvprintw(cy,cx,"%lc",L'🔮');}
             else if(strcmp(object,"Gold")==0){mvprintw(cy,cx,"%lc",L'🧈');}
+            else if(strcmp(object,"winner")==0){
+                    attron(COLOR_PAIR(1) | A_BOLD | A_BLINK);
+                    mvprintw(cy,cx,"%lc",L'᪥');
+                attroff(COLOR_PAIR(1) | A_BOLD | A_BLINK);}
             else if(strcmp(object,"Magical Food")==0){
                 attron(COLOR_PAIR(6));
                 mvprintw(cy,cx,"%lc",L'🍖');
@@ -450,6 +499,8 @@ void map_loader(){
                 mvprintw(cy,cx,"%lc",L'🍖');
                 attroff(COLOR_PAIR(3));}
             else if(strcmp(object,"Food")==0){mvprintw(cy,cx,"%lc",L'🍖');}
+            else if(strcmp(object,"Found trap")==0){mvprintw(cy,cx,"&");}
+            else if(strcmp(object,"Trap")==0){mvprintw(cy,cx,".");}
             else if(strcmp(object,"Used arrow")==0){mvprintw(cy,cx,"%lc",L'➴');}
             else if(strcmp(object,"Arrows")==0){
                 attron(COLOR_PAIR(2));
@@ -514,13 +565,25 @@ void map_loader(){
                 attron(COLOR_PAIR(19));
                 mvprintw(cy,cx,"|");
                 attroff(COLOR_PAIR(19));}
+            else if(strcmp(object,"lower wall yellow")==0){
+                attron(COLOR_PAIR(10));
+                mvprintw(cy,cx,"%lc",L'—');
+                attroff(COLOR_PAIR(10));}
+            else if(strcmp(object,"upper wall yellow")==0){
+                attron(COLOR_PAIR(10));
+                mvprintw(cy,cx,"_");
+                attroff(COLOR_PAIR(10));}
+            else if(strcmp(object,"side wall yellow")==0){
+                attron(COLOR_PAIR(10));
+                mvprintw(cy,cx,"|");
+                attroff(COLOR_PAIR(10));}
         }
     }
     fclose(fptr);
 }
 
 void grabber(int x,int y){
-    FILE *fptr=fopen("window_state.txt","r");
+    FILE *fptr=fopen(mapfile,"r");
     FILE *temp=fopen("temp.txt","w");
     int cx,cy,found;
     char object[100];
@@ -533,13 +596,13 @@ void grabber(int x,int y){
         else{fprintf(temp,"%d %d %d : %s\n",found,cx,cy,object);}
     }
     fclose(fptr);
-    remove("window_state.txt");
-    rename("temp.txt","window_state.txt");
+    remove(mapfile);
+    rename("temp.txt",mapfile);
     fclose(temp);
 }
 
 void dropper(int x,int y, char thing[100]){
-    FILE *fptr=fopen("window_state.txt","r");
+    FILE *fptr=fopen(mapfile,"r");
     FILE *temp=fopen("temp.txt","w");
     int cx,cy,found;
     char object[100];
@@ -552,13 +615,13 @@ void dropper(int x,int y, char thing[100]){
         else{fprintf(temp,"%d %d %d : %s\n",found,cx,cy,object);}
     }
     fclose(fptr);
-    remove("window_state.txt");
-    rename("temp.txt","window_state.txt");
+    remove(mapfile);
+    rename("temp.txt",mapfile);
     fclose(temp);
 }
 
 void print_current_state(){
-    FILE *fptr=fopen("window_state.txt","r");
+    FILE *fptr=fopen(mapfile,"r");
     int found,cx,cy;
     char object[100];
     while(fscanf(fptr, "%d %d %d : ",&found,&cx,&cy)==3){
@@ -584,8 +647,13 @@ void print_current_state(){
                 }
         }
         else{
+            strcpy(items[cx][cy],object);
             if(strcmp(object,"Obsidian")==0){mvprintw(cy,cx,"%lc",L'🔮');}
             else if(strcmp(object,"Gold")==0){mvprintw(cy,cx,"%lc",L'🧈');}
+            else if(strcmp(object,"winner")==0){
+                    attron(COLOR_PAIR(1) | A_BOLD | A_BLINK);
+                    mvprintw(cy,cx,"%lc",L'᪥');
+                attroff(COLOR_PAIR(1) | A_BOLD | A_BLINK);}
             else if(strcmp(object,"Magical Food")==0){
                 attron(COLOR_PAIR(6));
                 mvprintw(cy,cx,"%lc",L'🍖');
@@ -595,6 +663,8 @@ void print_current_state(){
                 mvprintw(cy,cx,"%lc",L'🍖');
                 attroff(COLOR_PAIR(3));}
             else if(strcmp(object,"Food")==0){mvprintw(cy,cx,"%lc",L'🍖');}
+            else if(strcmp(object,"Found trap")==0){mvprintw(cy,cx,"&");}
+            else if(strcmp(object,"Trap")==0){mvprintw(cy,cx,".");}
             else if(strcmp(object,"Used arrow")==0){mvprintw(cy,cx,"%lc",L'➴');}
             else if(strcmp(object,"Arrows")==0){
                 attron(COLOR_PAIR(2));
@@ -659,19 +729,183 @@ void print_current_state(){
                 attron(COLOR_PAIR(19));
                 mvprintw(cy,cx,"|");
                 attroff(COLOR_PAIR(19));}
+            else if(strcmp(object,"lower wall yellow")==0){
+                attron(COLOR_PAIR(10));
+                mvprintw(cy,cx,"%lc",L'—');
+                attroff(COLOR_PAIR(10));}
+            else if(strcmp(object,"upper wall yellow")==0){
+                attron(COLOR_PAIR(10));
+                mvprintw(cy,cx,"_");
+                attroff(COLOR_PAIR(10));}
+            else if(strcmp(object,"side wall yellow")==0){
+                attron(COLOR_PAIR(10));
+                mvprintw(cy,cx,"|");
+                attroff(COLOR_PAIR(10));}
             }
         }
     }
 }
 
-////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 int current_x,current_y;
 char prev;
 
+void info_saver(){
+    FILE *ptr=fopen(infofile,"w");
+    fprintf(ptr,"%d\n",inventory.enchantment_num);
+    for(int i=0;i<inventory.enchantment_num;i++){
+        fprintf(ptr,"%s\n",inventory.enchantments[i]);
+    }
+    fprintf(ptr,"%d\n",inventory.weapon_num);
+    for(int i=0;i<inventory.weapon_num;i++){
+        fprintf(ptr,"%s\n",inventory.weapons[i]);
+    }
+    fprintf(ptr,"%d\n",inventory.current_weapon);
+    fprintf(ptr,"%d\n",inventory.dagger_num);
+    fprintf(ptr,"%d\n",inventory.wand_num);
+    fprintf(ptr,"%d\n",inventory.arrow_num);
+    fprintf(ptr,"%d\n",inventory.food_num);
+    for(int i=0;i<inventory.food_num;i++){
+        fprintf(ptr,"%s\n",inventory.foods[i]);
+    }
+    for(int i=0;i<inventory.food_num;i++){
+        fprintf(ptr,"%d\n",inventory.food_quality[i]);
+    }
+    fprintf(ptr,"%d\n",inventory.gold);
+    fprintf(ptr,"%d\n",inventory.score);
+    fprintf(ptr,"%d\n",inventory.health);
+    fprintf(ptr,"%d\n",inventory.health_timer);
+    fprintf(ptr,"%d\n",inventory.health_timer2);
+    fprintf(ptr,"%d\n",inventory.hunger);
+    fprintf(ptr,"%d\n",inventory.strength);
+    fprintf(ptr,"%d\n",inventory.strength_timer);
+    fprintf(ptr,"%d\n",inventory.speed);
+    fprintf(ptr,"%d\n",inventory.speed_timer);
+    for(int i=0;i<6;i++){
+        fprintf(ptr,"%d\n",inventory.visited_floors[i]);
+    }
+    fprintf(ptr,"%d\n",inventory.floor_num);
+    fprintf(ptr,"%d\n",inventory.current_floor);
+    fclose(ptr);
+}
+
+void mapdetail_saver(){
+    FILE *ptr=fopen(mapdetailfile,"w");
+    fprintf(ptr,"%d\n",current_x);
+    fprintf(ptr,"%d\n",current_y);
+    fprintf(ptr,"%c\n",prev);
+    fprintf(ptr,"%d\n",enchantmentroom.exists);
+    if(enchantmentroom.exists){
+        fprintf(ptr,"%d\n",enchantmentroom.x1 );
+        fprintf(ptr,"%d\n",enchantmentroom.x2);
+        fprintf(ptr,"%d\n",enchantmentroom.y1);
+        fprintf(ptr,"%d\n",enchantmentroom.y2);
+        fprintf(ptr,"%d\n",enchantmentroom.x_door);
+        fprintf(ptr,"%d\n",enchantmentroom.y_door);
+    }
+    fprintf(ptr,"%d\n",nightmareroom.exists);
+    if(nightmareroom.exists){
+        fprintf(ptr,"%d\n",nightmareroom.x1 );
+        fprintf(ptr,"%d\n",nightmareroom.x2);
+        fprintf(ptr,"%d\n",nightmareroom.y1);
+        fprintf(ptr,"%d\n",nightmareroom.y2);
+        fprintf(ptr,"%d\n",nightmareroom.x_door);
+        fprintf(ptr,"%d\n",nightmareroom.y_door);
+    }
+    fprintf(ptr,"%d\n",goldroom.exists);
+    if(goldroom.exists){
+        fprintf(ptr,"%d\n",goldroom.x1 );
+        fprintf(ptr,"%d\n",goldroom.x2);
+        fprintf(ptr,"%d\n",goldroom.y1);
+        fprintf(ptr,"%d\n",goldroom.y2);
+        fprintf(ptr,"%d\n",goldroom.x_door);
+        fprintf(ptr,"%d\n",goldroom.y_door);
+    }
+    fclose(ptr);
+}
+
+
+void info_loader(){
+    FILE *ptr=fopen(infofile,"r");
+    fscanf(ptr,"%d\n",&inventory.enchantment_num);
+    for(int i=0;i<inventory.enchantment_num;i++){
+        fscanf(ptr,"%s\n",inventory.enchantments[i]);
+    }
+    fscanf(ptr,"%d\n",&inventory.weapon_num);
+    for(int i=0;i<inventory.weapon_num;i++){
+        fscanf(ptr,"%s\n",inventory.weapons[i]);
+    }
+    fscanf(ptr,"%d\n",&inventory.current_weapon);
+    fscanf(ptr,"%d\n",&inventory.dagger_num);
+    fscanf(ptr,"%d\n",&inventory.wand_num);
+    fscanf(ptr,"%d\n",&inventory.arrow_num);
+    fscanf(ptr,"%d\n",&inventory.food_num);
+    for(int i=0;i<inventory.food_num;i++){
+        fscanf(ptr,"%s\n",inventory.foods[i]);
+    }
+    for(int i=0;i<inventory.food_num;i++){
+        fscanf(ptr,"%d\n",&inventory.food_quality[i]);
+    }
+    fscanf(ptr,"%d\n",&inventory.gold);
+    fscanf(ptr,"%d\n",&inventory.score);
+    fscanf(ptr,"%d\n",&inventory.health);
+    fscanf(ptr,"%d\n",&inventory.health_timer);
+    fscanf(ptr,"%d\n",&inventory.health_timer2);
+    fscanf(ptr,"%d\n",&inventory.hunger);
+    fscanf(ptr,"%d\n",&inventory.strength);
+    fscanf(ptr,"%d\n",&inventory.strength_timer);
+    fscanf(ptr,"%d\n",&inventory.speed);
+    fscanf(ptr,"%d\n",&inventory.speed_timer);
+    for(int i=0;i<6;i++){
+        fscanf(ptr,"%d\n",&inventory.visited_floors[i]);
+    }
+    fscanf(ptr,"%d\n",&inventory.floor_num);
+    fscanf(ptr,"%d\n",&inventory.current_floor);
+    fclose(ptr);
+}
+
+void mapdetail_loader(){
+    FILE *ptr=fopen(mapdetailfile,"r");
+    fscanf(ptr,"%d\n",&current_x);
+    fscanf(ptr,"%d\n",&current_y);
+    fscanf(ptr,"%c\n",&prev);
+    fscanf(ptr,"%d\n",&enchantmentroom.exists);
+    if(enchantmentroom.exists){
+        fscanf(ptr,"%d\n",&enchantmentroom.x1 );
+        fscanf(ptr,"%d\n",&enchantmentroom.x2);
+        fscanf(ptr,"%d\n",&enchantmentroom.y1);
+        fscanf(ptr,"%d\n",&enchantmentroom.y2);
+        fscanf(ptr,"%d\n",&enchantmentroom.x_door);
+        fscanf(ptr,"%d\n",&enchantmentroom.y_door);
+    }
+    fscanf(ptr,"%d\n",&nightmareroom.exists);
+    if(nightmareroom.exists){
+        fscanf(ptr,"%d\n",&nightmareroom.x1 );
+        fscanf(ptr,"%d\n",&nightmareroom.x2);
+        fscanf(ptr,"%d\n",&nightmareroom.y1);
+        fscanf(ptr,"%d\n",&nightmareroom.y2);
+        fscanf(ptr,"%d\n",&nightmareroom.x_door);
+        fscanf(ptr,"%d\n",&nightmareroom.y_door);
+    }
+    fscanf(ptr,"%d\n",&goldroom.exists);
+    if(goldroom.exists){
+        fscanf(ptr,"%d\n",&goldroom.x1 );
+        fscanf(ptr,"%d\n",&goldroom.x2);
+        fscanf(ptr,"%d\n",&goldroom.y1);
+        fscanf(ptr,"%d\n",&goldroom.y2);
+        fscanf(ptr,"%d\n",&goldroom.x_door);
+        fscanf(ptr,"%d\n",&goldroom.y_door);
+    }
+    fclose(ptr);
+}
+
+
+////////////////////////////////////////////////////////
+
 int nightmare=1;
 
-void character_mover(room **rooms, int total_room){
+int character_mover(room **rooms, int total_room){
     while(1){
     int c=getch();
     int next_x,next_y=-1;
@@ -700,6 +934,58 @@ void character_mover(room **rooms, int total_room){
         case '1':
             next_x=current_x-inventory.speed; next_y=current_y+inventory.speed;
             break;
+        case '\n':
+            int screen_height, screen_width;
+            getmaxyx(stdscr, screen_height, screen_width);
+            int win_height = 20;
+            int win_width = 60;
+            int start_y = (screen_height - win_height) / 2;
+            int start_x = (screen_width - win_width) / 2;
+            WINDOW *win = newwin(win_height, win_width, start_y, start_x);
+            box(win,ACS_PLUS, ACS_DIAMOND);
+            wattron(win, A_BOLD);
+            mvwprintw(win, 1, 25,"Pause");
+            wattroff(win, A_BOLD);
+            mvwprintw(win, 3, 3, "Press:");
+            mvwprintw(win, 4, 3, "1 : How to Play");
+            mvwprintw(win, 5, 3, "2 : Save and Quit");
+            wrefresh(win);
+            int a=getch();
+            if(a=='2'){
+                werase(win);
+                wrefresh(win);
+                delwin(win);  
+                touchwin(stdscr);     
+                refresh(); 
+                return -2;
+            }
+            if(a=='1'){
+                werase(win);
+                wrefresh(win);
+                box(win,ACS_PLUS, ACS_DIAMOND);
+                mvwprintw(win,2,2,"Enter -> Pause");
+                mvwprintw(win,3,2,"m -> View the entire map");
+                mvwprintw(win,4,2,"s -> Look for traps");
+                mvwprintw(win,5,2,"f -> Move fast in one direction");
+                mvwprintw(win,6,2,"e -> Inventory");
+                mvwprintw(win,7,2,"Space -> Attack");
+                mvwprintw(win,8,2,"a -> Repeat the previous attack(Long-ranged weapons)");
+                wrefresh(win);
+                getch();
+                werase(win);
+                wrefresh(win);
+                delwin(win);  
+                touchwin(stdscr);     
+                refresh(); 
+            }
+            else{
+                werase(win);
+                wrefresh(win);
+                delwin(win);  
+                touchwin(stdscr);     
+                refresh(); 
+            }
+            break;
         case 'm':
             clear();
             map_loader();
@@ -716,11 +1002,25 @@ void character_mover(room **rooms, int total_room){
             score_printer();
             hunger_printer();
             health_printer();
-            FILE *fptr=fopen("window_state.txt","r");
+            FILE *fptr=fopen(mapfile,"r");
             nightmare_map_explorer(fptr,current_x,current_y);
             fclose(fptr);
             mvprintw(current_y,current_x,"%lc",characterlist[current_character]);
             refresh();
+            break;
+        case 's':
+            int xx_moves[8]={1,1,0,-1,-1,-1,0,1};
+            int yy_moves[8]={0,-1,-1,-1,0,1,1,1};
+            for(int i=0;i<8;i++){
+                if(strcmp(items[current_x+xx_moves[i]][current_y+yy_moves[i]],"Trap")==0){
+                    grabber(current_x+xx_moves[i],current_y+yy_moves[i]);
+                    char trapp[100]="Found trap";
+                    dropper(current_x+xx_moves[i],current_y+yy_moves[i],trapp);
+                    strcpy(items[current_x+xx_moves[i]][current_y+yy_moves[i]],"Found trap");
+                    mvprintw(current_y+yy_moves[i],current_x+xx_moves[i],"&");
+                    refresh();
+                }
+            }
             break;
         case 'f':
             chh=getch();
@@ -732,7 +1032,46 @@ void character_mover(room **rooms, int total_room){
             while(mvinch(current_y + y_moves[ch], current_x + x_moves[ch])=='.' || mvinch(current_y + y_moves[ch], current_x + x_moves[ch])=='+' || mvinch(current_y + y_moves[ch], current_x + x_moves[ch])=='#'){
                 current_x=current_x + x_moves[ch];
                 current_y=current_y + y_moves[ch];
-                if(current_x==rooms[enchantment_room]->door_coordinates[0][1] && current_y==rooms[enchantment_room]->door_coordinates[0][2]){
+            if(next_y>=0 && strcmp(items[current_x][current_y],"Trap")==0){
+               mvprintw(0,0,"                                                                                ");
+                mvprintw(0,0,"You stepped on trap! 30 damage taken!");
+                grabber(next_x,next_y);
+                char trapp[100]="Found trap";
+                dropper(next_x,next_y,trapp);
+                strcpy(items[next_x][next_y],"Found trap");
+                mvprintw(next_y,next_x,"&");
+                inventory.health-=30;
+                health_printer();
+                if(health_checker()) return 0;
+                refresh();
+            }
+            if(next_y>=0 && strcmp(items[next_x][next_y],"Found trap")==0){
+                mvprintw(0,0,"                                                                                ");
+                mvprintw(0,0,"You stepped on trap! 50 damage taken!");
+                inventory.health-=50;
+                health_printer();
+                if(health_checker()) return 0;
+                refresh();
+            }
+            if(current_x==goldroom.x_door && current_y==goldroom.y_door){
+            mvprintw(0,0,"                                                                                ");
+            mvprintw(0,0,"You have entered the Gold room! Victory is close!");
+            refresh();
+            napms(2000);
+            mvprintw(0,0,"                                                                                  ");
+            refresh();
+            if(strcmp(song,"Eye of the Tiger.mp3")==0){
+                strcpy(song,musiclist[current_music]);
+                pthread_t music_thread;
+                pthread_create(&music_thread, NULL, play_music, NULL);
+            }
+            else{
+                strcpy(song,"Eye of the Tiger.mp3");
+                pthread_t music_thread;
+                pthread_create(&music_thread, NULL, play_music, NULL);
+            }
+        }
+            if(current_x==enchantmentroom.x_door && current_y==enchantmentroom.y_door){
             mvprintw(0,0,"                                                                                ");
             mvprintw(0,0,"You have entered the Enchantment room! Each move you make will cause you damage!");
             refresh();
@@ -740,7 +1079,7 @@ void character_mover(room **rooms, int total_room){
             mvprintw(0,0,"                                                                                  ");
             refresh();
             if(strcmp(song,"enchantmentroom.mp3")==0){
-                strcpy(song,"music_fixed.ogg");
+                strcpy(song,musiclist[current_music]);
                 pthread_t music_thread;
                 pthread_create(&music_thread, NULL, play_music, NULL);
             }
@@ -750,14 +1089,14 @@ void character_mover(room **rooms, int total_room){
                 pthread_create(&music_thread, NULL, play_music, NULL);
             }
         }
-        if(current_x==rooms[nightmare_room]->door_coordinates[0][1] && current_y==rooms[nightmare_room]->door_coordinates[0][2]){
+        if(current_x==nightmareroom.x_door && current_y==nightmareroom.y_door){
             mvprintw(0,0,"You have entered the Nightmare room.. Do not trust what you see..");
             refresh();
             napms(2000);
             mvprintw(0,0,"                                                                   ");
             refresh();
             if(strcmp(song,"nightmareroom.mp3")==0){
-                strcpy(song,"music_fixed.ogg");
+                strcpy(song,musiclist[current_music]);
                 pthread_t music_thread;
                 pthread_create(&music_thread, NULL, play_music, NULL);
             }
@@ -768,21 +1107,21 @@ void character_mover(room **rooms, int total_room){
             }
             nightmare*=(-1);
         }
-        if(current_x>rooms[enchantment_room]->x && current_x<=rooms[enchantment_room]->x + rooms[enchantment_room]->width 
-         && current_y>rooms[enchantment_room]->y && current_y<=rooms[enchantment_room]->y + rooms[enchantment_room]->height){
+        if(current_x>enchantmentroom.x1 && current_x<enchantmentroom.x2 
+         && current_y>enchantmentroom.y1 && current_y<enchantmentroom.y2){
             inventory.health-=10;
             health_printer();
-            health_checker();
+            if(health_checker()) return 0;
          }
         if(inventory.hunger>0){inventory.hunger-=1;}
         if(inventory.hunger%50==0){
             if(inventory.hunger>=0){
-            mvprintw(44,172+inventory.hunger/50," ");}
+            hunger_printer();}
         }
         if(inventory.hunger<=0){
             inventory.health-=2;
             health_printer();
-            health_checker();
+            if(health_checker()) return 0;
         }
         for(int i=0;i<inventory.food_num;i++){
             inventory.food_quality[i]-=1;
@@ -811,11 +1150,11 @@ void character_mover(room **rooms, int total_room){
             health_printer();
             refresh();
         }
-        FILE *fptr=fopen("window_state.txt","r");
+        FILE *fptr=fopen(mapfile,"r");
         if(nightmare==1)map_explorer(fptr,current_x,current_y,rooms);
-        for(int i=rooms[nightmare_room]->x; i<=rooms[nightmare_room]->width+rooms[nightmare_room]->x+1; i++){
-            for(int j=rooms[nightmare_room]->y; j<=rooms[nightmare_room]->height+rooms[nightmare_room]->y+1; j++){
-                if(i==rooms[nightmare_room]->door_coordinates[0][1] && j==rooms[nightmare_room]->door_coordinates[0][2]) continue;
+        for(int i=nightmareroom.x1; i<=nightmareroom.x2; i++){
+            for(int j=nightmareroom.y1; j<=nightmareroom.y2; j++){
+                if(i==nightmareroom.x_door && j==nightmareroom.y_door) continue;
                 mvprintw(j,i," ");
             }
         }
@@ -830,13 +1169,13 @@ void character_mover(room **rooms, int total_room){
             mvprintw(current_y,current_x,"%lc",characterlist[current_character]);
             break;
         case 'e':
-            int screen_height, screen_width;
+            screen_height, screen_width;
             getmaxyx(stdscr, screen_height, screen_width);
-            int win_height = 20;
-            int win_width = 60;
-            int start_y = (screen_height - win_height) / 2;
-            int start_x = (screen_width - win_width) / 2;
-            WINDOW *win = newwin(win_height, win_width, start_y, start_x);
+            win_height = 20;
+            win_width = 60;
+            start_y = (screen_height - win_height) / 2;
+            start_x = (screen_width - win_width) / 2;
+            win = newwin(win_height, win_width, start_y, start_x);
             box(win,ACS_PLUS, ACS_DIAMOND);
             wattron(win, A_BOLD);
             mvwprintw(win, 1, 25,"Inventory");
@@ -1087,10 +1426,8 @@ void character_mover(room **rooms, int total_room){
                                     delwin(win);  
                                     touchwin(stdscr);     
                                     refresh(); 
+                                    mvprintw(0,0,"                                                                    ");
                                     mvprintw(0,0,"You can't drop anything here.");
-                                    refresh(); 
-                                    napms(2000);
-                                    mvprintw(0,0,"                               ");
                                     refresh(); 
                                 }
                                 break;
@@ -1135,6 +1472,7 @@ void character_mover(room **rooms, int total_room){
                             wrefresh(win);
                             delwin(win);  
                             touchwin(stdscr);
+                            mvprintw(0,0,"                                                                    ");
                             mvprintw(0,0,"Equipped Magic Wand.");     
                             refresh();  }
                             else{
@@ -1150,6 +1488,7 @@ void character_mover(room **rooms, int total_room){
                             wrefresh(win);
                             delwin(win);  
                             touchwin(stdscr);
+                            mvprintw(0,0,"                                                                    ");
                             mvprintw(0,0,"Equipped Mace.");     
                             refresh();  }
                             else{
@@ -1165,6 +1504,7 @@ void character_mover(room **rooms, int total_room){
                             wrefresh(win);
                             delwin(win);  
                             touchwin(stdscr);
+                            mvprintw(0,0,"                                                                    ");
                             mvprintw(0,0,"Equipped Dagger.");     
                             refresh();  }
                             else{
@@ -1180,6 +1520,7 @@ void character_mover(room **rooms, int total_room){
                             wrefresh(win);
                             delwin(win);  
                             touchwin(stdscr);
+                            mvprintw(0,0,"                                                                    ");
                             mvprintw(0,0,"Equipped Sword.");     
                             refresh();  }
                             else{
@@ -1195,6 +1536,7 @@ void character_mover(room **rooms, int total_room){
                             wrefresh(win);
                             delwin(win);  
                             touchwin(stdscr);
+                            mvprintw(0,0,"                                                                    ");
                             mvprintw(0,0,"Equipped Arrows.");     
                             refresh();  }
                             else{
@@ -1219,9 +1561,17 @@ void character_mover(room **rooms, int total_room){
                     touchwin(stdscr);     
                     refresh();  
                     break;
+            default:
+                werase(win);
+                wrefresh(win);
+                delwin(win);  
+                touchwin(stdscr);     
+                refresh(); 
+                break;
             }  
             break;
         case ' ':
+        if(monster_mode!='0'){
             if(whos_turn_is_it==1){
                 if(strcmp(inventory.weapons[inventory.current_weapon],"Mace")==0 || strcmp(inventory.weapons[inventory.current_weapon],"Sword")==0){
                     weapon_user(inventory.weapons[inventory.current_weapon],0,current_x,current_y,inventory.strength);
@@ -1269,13 +1619,15 @@ void character_mover(room **rooms, int total_room){
                 }
             }
             else if(whos_turn_is_it==0){
-                monster_damage(monster_mode, difficulty);
+                inventory.health-=monster_damage(monster_mode, difficulty);
                 whos_turn_is_it=1;
                 health_printer();
-                health_checker();
+                if(health_checker()) return 0;
             }
+        }
             break;
         case 'a':
+        if(monster_mode!='0'){
             if(whos_turn_is_it==1){
                 if(strcmp(inventory.weapons[inventory.current_weapon],"Mace")==0 || strcmp(inventory.weapons[inventory.current_weapon],"Sword")==0){
                     weapon_user(inventory.weapons[inventory.current_weapon],0,current_x,current_y,inventory.strength);
@@ -1322,11 +1674,12 @@ void character_mover(room **rooms, int total_room){
                 }
             }
             else if(whos_turn_is_it==0){
-                monster_damage(monster_mode, difficulty);
+                inventory.health-=monster_damage(monster_mode, difficulty);
                 whos_turn_is_it=1;
                 health_printer();
-                health_checker();
+                if(health_checker()) return 0;
             }
+        }
             break;
         default:
             break;
@@ -1344,7 +1697,56 @@ void character_mover(room **rooms, int total_room){
         first_time_we_see_it=0;
         monster_x=0; monster_y=0;
         whos_turn_is_it=1;
-        mvprintw(43,1,"                       ");
+        mvprintw(43,1,"                                  ");
+        refresh();
+    }
+    chtype ch = mvinch(next_y,next_x);
+    char stairs = ch & A_CHARTEXT;
+    if(stairs=='<'){
+        mvprintw(0,0,"                                                                                ");
+        mvprintw(0,0,"Press < to advance to the next floor!");
+        char v=getch();
+        if(v=='<'){
+            return 1;
+        }
+    }
+    if(stairs=='>'){
+        mvprintw(0,0,"                                                                                ");
+        mvprintw(0,0,"Press > to advance to go back to the previous floor!");
+        char v=getch();
+        if(v=='>'){
+            mvprintw(0,0,"                      ");
+            refresh();
+            return -1;
+        }
+    }
+    if(next_y>=0 && strcmp(items[next_x][next_y],"winner")==0){
+        mvprintw(0,0,"                                                                                ");
+        mvprintw(0,0,"Press w to win!");
+        char v=getch();
+        if(v=='w'){
+            return 2;
+        }
+    }
+    if(next_y>=0 && strcmp(items[next_x][next_y],"Trap")==0){
+        mvprintw(0,0,"                                                                                ");
+        mvprintw(0,0,"You stepped on trap! 30 damage taken!");
+        grabber(next_x,next_y);
+        char trapp[100]="Found trap";
+        dropper(next_x,next_y,trapp);
+        strcpy(items[next_x][next_y],"Found trap");
+        inventory.health-=30;
+        mvprintw(next_y,next_x,"&");
+        health_printer();
+        if(health_checker()) return 0;
+        refresh();
+    }
+    if(next_y>=0 && strcmp(items[next_x][next_y],"Found trap")==0){
+        mvprintw(0,0,"                                                                                ");
+        mvprintw(0,0,"You stepped on trap! 50 damage taken!");
+        inventory.health-=50;
+        health_printer();
+        if(health_checker()) return 0;
         refresh();
     }
     if(next_y>=0 && (mvinch(next_y,next_x)=='.' || mvinch(next_y,next_x)=='+' || mvinch(next_y,next_x)=='#')){
@@ -1353,7 +1755,7 @@ void character_mover(room **rooms, int total_room){
         mvprintw(next_y,next_x,"%lc",characterlist[current_character]);
         current_x=next_x;
         current_y=next_y;
-        if(current_x==rooms[enchantment_room]->door_coordinates[0][1] && current_y==rooms[enchantment_room]->door_coordinates[0][2]){
+        if(current_x==enchantmentroom.x_door && current_y==enchantmentroom.y_door){
             mvprintw(0,0,"                                                                                ");
             mvprintw(0,0,"You have entered the Enchantment room! Each move you make will cause you damage!");
             refresh();
@@ -1361,7 +1763,7 @@ void character_mover(room **rooms, int total_room){
             mvprintw(0,0,"                                                                                  ");
             refresh();
             if(strcmp(song,"enchantmentroom.mp3")==0){
-                strcpy(song,"music_fixed.ogg");
+                strcpy(song,musiclist[current_music]);
                 pthread_t music_thread;
                 pthread_create(&music_thread, NULL, play_music, NULL);
             }
@@ -1371,14 +1773,33 @@ void character_mover(room **rooms, int total_room){
                 pthread_create(&music_thread, NULL, play_music, NULL);
             }
         }
-        if(current_x==rooms[nightmare_room]->door_coordinates[0][1] && current_y==rooms[nightmare_room]->door_coordinates[0][2]){
+        if(current_x==goldroom.x_door && current_y==goldroom.y_door){
+            mvprintw(0,0,"                                                                                ");
+            mvprintw(0,0,"You have entered the Gold room! Victory is close!");
+            refresh();
+            napms(2000);
+            mvprintw(0,0,"                                                                                  ");
+            refresh();
+            if(strcmp(song,"Eye of the Tiger.mp3")==0){
+                strcpy(song,musiclist[current_music]);
+                pthread_t music_thread;
+                pthread_create(&music_thread, NULL, play_music, NULL);
+            }
+            else{
+                strcpy(song,"Eye of the Tiger.mp3");
+                pthread_t music_thread;
+                pthread_create(&music_thread, NULL, play_music, NULL);
+            }
+        }
+        if(current_x==nightmareroom.x_door && current_y==nightmareroom.y_door){
+            mvprintw(0,0,"                                                                        ");
             mvprintw(0,0,"You have entered the Nightmare room.. Do not trust what you see..");
             refresh();
             napms(2000);
             mvprintw(0,0,"                                                                   ");
             refresh();
             if(strcmp(song,"nightmareroom.mp3")==0){
-                strcpy(song,"music_fixed.ogg");
+                strcpy(song,musiclist[current_music]);
                 pthread_t music_thread;
                 pthread_create(&music_thread, NULL, play_music, NULL);
             }
@@ -1389,21 +1810,21 @@ void character_mover(room **rooms, int total_room){
             }
             nightmare*=(-1);
         }
-        if(current_x>rooms[enchantment_room]->x && current_x<=rooms[enchantment_room]->x + rooms[enchantment_room]->width 
-         && current_y>rooms[enchantment_room]->y && current_y<=rooms[enchantment_room]->y + rooms[enchantment_room]->height){
+        if(current_x>enchantmentroom.x1 && current_x<enchantmentroom.x2 
+         && current_y>enchantmentroom.y1 && current_y<enchantmentroom.y2){
             inventory.health-=10;
             health_printer();
-            health_checker();
+            if(health_checker()) return 0;
          }
         if(inventory.hunger>0){inventory.hunger-=1;}
         if(inventory.hunger%50==0){
             if(inventory.hunger>=0){
-            mvprintw(44,172+inventory.hunger/50," ");}
+            hunger_printer();}
         }
         if(inventory.hunger<=0){
             inventory.health-=2;
             health_printer();
-            health_checker();
+            if(health_checker()) return 0;
         }
         for(int i=0;i<inventory.food_num;i++){
             inventory.food_quality[i]-=1;
@@ -1432,11 +1853,11 @@ void character_mover(room **rooms, int total_room){
             health_printer();
             refresh();
         }
-        FILE *fptr=fopen("window_state.txt","r");
+        FILE *fptr=fopen(mapfile,"r");
         if(nightmare==1)map_explorer(fptr,current_x,current_y,rooms);
-        for(int i=rooms[nightmare_room]->x; i<=rooms[nightmare_room]->width+rooms[nightmare_room]->x+1; i++){
-            for(int j=rooms[nightmare_room]->y; j<=rooms[nightmare_room]->height+rooms[nightmare_room]->y+1; j++){
-                if(i==rooms[nightmare_room]->door_coordinates[0][1] && j==rooms[nightmare_room]->door_coordinates[0][2]) continue;
+        for(int i=nightmareroom.x1; i<=nightmareroom.x2; i++){
+            for(int j=nightmareroom.y1; j<=nightmareroom.y2; j++){
+                if(i==nightmareroom.x_door && j==nightmareroom.y_door) continue;
                 mvprintw(j,i," ");
             }
         }
@@ -1449,6 +1870,7 @@ void character_mover(room **rooms, int total_room){
     }
     else if(next_y>=0){
     if(strcmp(items[next_x][next_y],"Enchantment of Health")==0 || strcmp(items[next_x][next_y],"Enchantment of Speed")==0 || strcmp(items[next_x][next_y],"Enchantment of Damage")==0){
+        mvprintw(0,0,"                                                                    ");
         mvprintw(0,0,"Press G to grab %s.",items[next_x][next_y]);
         refresh();
         int g=getchar();
@@ -1463,7 +1885,7 @@ void character_mover(room **rooms, int total_room){
                 inventory.enchantment_num+=1;
                 mvprintw(next_y,next_x,".");
                 mvprintw(next_y,next_x+1,".");
-                mvprintw(0,0,"                                                          ");
+                mvprintw(0,0,"                                                                    ");
                 mvprintw(0,0,"Grabbed %s.",items[next_x][next_y]);
                 grabber(next_x,next_y);
                 refresh();
@@ -1473,6 +1895,7 @@ void character_mover(room **rooms, int total_room){
         refresh(); 
     }
     else if(strcmp(items[next_x][next_y],"Sword")==0 || strcmp(items[next_x][next_y],"Dagger")==0 || strcmp(items[next_x][next_y],"Magic wand")==0 || strcmp(items[next_x][next_y],"Arrows")==0 || strcmp(items[next_x][next_y],"Used arrow")==0){
+        mvprintw(0,0,"                                                                    ");
         mvprintw(0,0,"Press G to grab %s.",items[next_x][next_y]);
         refresh();
         int g=getchar();
@@ -1514,6 +1937,7 @@ void character_mover(room **rooms, int total_room){
         refresh(); 
     }
     else if(strcmp(items[next_x][next_y],"Food")==0 || strcmp(items[next_x][next_y],"Exquisite Food")==0 || strcmp(items[next_x][next_y],"Magical Food")==0){
+        mvprintw(0,0,"                                                                    ");
         mvprintw(0,0,"Press G to grab %s.",items[next_x][next_y]);
         refresh();
         int g=getchar();
@@ -1574,16 +1998,15 @@ void character_mover(room **rooms, int total_room){
     }
 }
 
-
-void character_generator(room **rooms, int total_room){
+void make_character_at_beggining(){
     inventory.food_num=0;
     inventory.enchantment_num=0;
     inventory.weapon_num=1;
     strcpy(inventory.weapons[0],"Mace");
     inventory.current_weapon=0;
-    int dagger_num=0;
-    int wand_num=0;
-    int arrow_num=0;
+    inventory.dagger_num=0;
+    inventory.wand_num=0;
+    inventory.arrow_num=0;
     inventory.gold=0;
     inventory.score=0;
     inventory.health=500;
@@ -1594,8 +2017,11 @@ void character_generator(room **rooms, int total_room){
     inventory.speed_timer=0;
     inventory.strength=1;
     inventory.strength_timer=0;
-    init_color(COLOR_YELLOW, 800, 800, 0);
-    init_pair(10,COLOR_YELLOW, COLOR_BLACK);
+}
+
+int character_generator(room **rooms, int total_room, int floor){
+    inventory.current_floor=floor;
+    inventory.visited_floors[floor]=1;
     int w=rooms[0]->width;
     int h=rooms[0]->height;
     int x,y;
@@ -1605,7 +2031,7 @@ void character_generator(room **rooms, int total_room){
     while(mvinch(y,x)!='.' || mvinch(y,x+1)!='.' || mvinch(y,x-1)!='.');
     current_x=x; current_y=y;
     prev='.';
-    FILE* fptr=fopen("window_state.txt","w");
+    FILE* fptr=fopen(mapfile,"w");
     map_saver(fptr);
     fclose(fptr);
     refresh();
@@ -1618,21 +2044,147 @@ void character_generator(room **rooms, int total_room){
     health_printer();
     hunger_printer();
     refresh();
-    FILE* fptr2=fopen("window_state.txt","r");
+    FILE* fptr2=fopen(mapfile,"r");
     map_explorer(fptr2,x,y,rooms);
-    character_mover(rooms,total_room);
+    mvprintw(0,0,"You have entered floor %d!",floor);
+    refresh();
+    int a=character_mover(rooms,total_room);
     fclose(fptr2);
+    return a;
 }    
 
+int character_loader(room **rooms, int total_room, int floor){
+    attron(COLOR_PAIR(10));
+    mvprintw(0,172,"Gold : %d",inventory.gold);
+    attroff(COLOR_PAIR(10));
+    score_printer();
+    health_printer();
+    hunger_printer();
+    refresh();
+    FILE* fptr2=fopen(mapfile,"r");
+    map_explorer(fptr2,current_x,current_y,rooms);
+    mvprintw(0,0,"You have entered floor %d!",floor);
+    refresh();
+    int a=character_mover(rooms,total_room);
+    fclose(fptr2);
+    return a;
+}    
 
+///////////////////////////////////////////////////////////////////////////
 
+int new_game(char *user){
+    curs_set(0);
+    sprintf(infofile, "%s.info.txt", user);
+    int floor=1;
+    int total_floor=rand()%2 +4; //4 or 5
+    //int total_floor=1;
+    inventory.floor_num=total_floor;
+    memset(inventory.visited_floors,0,6*sizeof(int));
+    make_character_at_beggining();
+    while(1){
+    clear();
+    refresh();
+    sprintf(mapfile, "%s.floor%d.txt", user, floor);
+    sprintf(mapdetailfile, "%s.floor%ddetail.txt", user, floor);
+    int z;
+    room **rooms;
+    if(inventory.visited_floors[floor]==0){
+        enchantmentroom.exists=0;
+        nightmareroom.exists=0;
+        goldroom.exists=0;
+        rooms=map_generator(floor,total_floor);
+        z=character_generator(rooms,total_room,floor);
+        mapdetail_saver();
+        inventory.visited_floors[floor]=1;}
+    else{
+        memset(items,'\0',sizeof(items));
+        print_current_state();
+        refresh();
+        mapdetail_loader();
+        inventory.visited_floors[floor]=1;
+        z=character_loader(rooms,total_room,floor);
+        mapdetail_saver();
+    }
+    if(z==1){
+        floor+=1;
+        if(inventory.visited_floors[floor]==0){
+            inventory.score+=40;
+        }
+    }
+    else if(z==-1){
+        floor-=1;
+    }
+    else if(z==2){
+        gold_to_be_added=inventory.gold;
+        score_to_be_added=inventory.score;
+        return 1; //WIN
+    }
+    else if(z==0){
+        gold_to_be_added=inventory.gold;
+        score_to_be_added=inventory.score;
+        return -1; //LOSE
+    }
+    else if(z==-2){
+        info_saver();
+        mapdetail_saver();
+        return 0; //pause
+    }
+    }   
+}
 
-// int main(){
-//curs_set(0);
-    
-//     room **rooms=map_generator();
-//     character_generator(rooms,total_room);
-    
-//     endwin();
-   
-// }
+int resume_game(char *user){
+    curs_set(0);
+    sprintf(infofile, "%s.info.txt", user);
+    info_loader();
+    int floor=inventory.current_floor;
+    int total_floor=inventory.floor_num;
+    while(1){
+    sprintf(mapfile, "%s.floor%d.txt", user, floor);
+    sprintf(mapdetailfile, "%s.floor%ddetail.txt", user, floor);
+    clear();
+    refresh();
+    int z;
+    room **rooms;
+    if(inventory.visited_floors[floor]==0){
+        enchantmentroom.exists=0;
+        nightmareroom.exists=0;
+        goldroom.exists=0;
+        rooms=map_generator(floor,total_floor);
+        z=character_generator(rooms,total_room,floor);
+        mapdetail_saver();
+        inventory.visited_floors[floor]=1;}
+    else{
+        memset(items,'\0',sizeof(items));
+        mapdetail_loader();
+        print_current_state();
+        refresh();
+        inventory.visited_floors[floor]=1;
+        z=character_loader(rooms,total_room,floor);
+        mapdetail_saver();
+    }
+    if(z==1){
+        floor+=1;
+        if(inventory.visited_floors[floor]==0){
+            inventory.score+=40;
+        }
+    }
+    else if(z==-1){
+        floor-=1;
+    }
+    else if(z==2){
+        gold_to_be_added=inventory.gold;
+        score_to_be_added=inventory.score;
+        return 1; //WIN
+    }
+    else if(z==0){
+        gold_to_be_added=inventory.gold;
+        score_to_be_added=inventory.score;
+        return -1; //LOSE
+    }
+    else if(z==-2){
+        info_saver();
+        mapdetail_saver();
+        return 0; //pause
+    }
+    }   
+}

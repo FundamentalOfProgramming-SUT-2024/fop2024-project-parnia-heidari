@@ -16,6 +16,10 @@
 wchar_t characterlist[6]={L'🯅',L'🯉',L'♛',L'♚',L'♜',L'♞'};
 int current_character=0;
 
+char mapfile[300];
+char infofile[300];
+char mapdetailfile[300];
+
 int allow_to_move=1;
 int monster_health=0;
 int first_time_we_see_it=0;
@@ -27,7 +31,7 @@ int last_dir=0;
 int monster_moves_num=0;
 
 void monster_file_editor_1(int x,int y){ //removes the monster's current position from the file
-    FILE *fptr=fopen("window_state.txt","r");
+    FILE *fptr=fopen(mapfile,"r");
     FILE *temp=fopen("temp.txt","w");
     int cx,cy,found;
     char object[100];
@@ -39,13 +43,13 @@ void monster_file_editor_1(int x,int y){ //removes the monster's current positio
         else{fprintf(temp,"%d %d %d : %s\n",found,cx,cy,object);}
     }
     fclose(fptr);
-    remove("window_state.txt");
-    rename("temp.txt","window_state.txt");
+    remove(mapfile);
+    rename("temp.txt",mapfile);
     fclose(temp);
 }
 
 void monster_file_editor_2(int x,int y, char monster){ //adds the new location of the monster to the file
-    FILE *fptr=fopen("window_state.txt","r");
+    FILE *fptr=fopen(mapfile,"r");
     FILE *temp=fopen("temp.txt","w");
     int cx,cy,found;
     char object[100];
@@ -57,8 +61,8 @@ void monster_file_editor_2(int x,int y, char monster){ //adds the new location o
         else{fprintf(temp,"%d %d %d : %s\n",found,cx,cy,object);}
     }
     fclose(fptr);
-    remove("window_state.txt");
-    rename("temp.txt","window_state.txt");
+    remove(mapfile);
+    rename("temp.txt",mapfile);
     fclose(temp);
 }
 
@@ -263,6 +267,7 @@ void weapon_user(char weapon[100],int direction,int x,int y,int strength){
                 attron(A_ITALIC);
                 mvprintw(0,0,"                                                                   ");
                 mvprintw(0,0,"You hit the Snake—%d damage dealt!",d);
+                allow_to_move=0;
                 attroff(A_ITALIC);
                 monster_health-=d;
                 if(first) mvprintw(y,x,".");
@@ -272,6 +277,7 @@ void weapon_user(char weapon[100],int direction,int x,int y,int strength){
                 attron(A_ITALIC);
                 mvprintw(0,0,"                                                                   ");
                 mvprintw(0,0,"You hit the Undead—%d damage dealt!",d);
+                allow_to_move=0;
                 attroff(A_ITALIC);
                 monster_health-=d;
                 if(first) mvprintw(y,x,".");
@@ -281,6 +287,7 @@ void weapon_user(char weapon[100],int direction,int x,int y,int strength){
                 attron(A_ITALIC);
                 mvprintw(0,0,"                                                                   ");
                 mvprintw(0,0,"You hit the Giant—%d damage dealt!",d);
+                allow_to_move=0;
                 attroff(A_ITALIC);
                 monster_health-=d;
                 if(first) mvprintw(y,x,".");
@@ -290,6 +297,7 @@ void weapon_user(char weapon[100],int direction,int x,int y,int strength){
                 attron(A_ITALIC);
                 mvprintw(0,0,"                                                                   ");
                 mvprintw(0,0,"You hit the Fire Breathing Monster—%d damage dealt!",d);
+                allow_to_move=0;
                 attroff(A_ITALIC);
                 monster_health-=d;
                 if(first) mvprintw(y,x,".");
@@ -299,6 +307,7 @@ void weapon_user(char weapon[100],int direction,int x,int y,int strength){
                 attron(A_ITALIC);
                 mvprintw(0,0,"                                                                   ");
                 mvprintw(0,0,"You hit the Deamon—%d damage dealt!",d);
+                allow_to_move=0;
                 attroff(A_ITALIC);
                 monster_health-=d;
                 if(first) mvprintw(y,x,".");
